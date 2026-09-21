@@ -3,6 +3,10 @@ import "./App.css";
 
 function App() {
   const [data, setData] = useState(null);
+  const [severityFilter, setSeverityFilter] = useState("ALL");
+  const [threatFilter, setThreatFilter] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedIncident, setExpandedIncident] = useState(null);
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/analyze")
@@ -16,6 +20,35 @@ function App() {
   }
 
   const incidents = data.incidents;
+
+  const filteredIncidents = incidents.filter((incident) => {
+
+    if (
+      severityFilter !== "ALL" &&
+      incident.severity !== severityFilter
+    ) {
+      return false;
+    }
+
+    if (
+      threatFilter !== "ALL" &&
+      !incident.threats.includes(threatFilter)
+    ) {
+      return false;
+    }
+
+    const search = searchTerm.toLowerCase();
+
+    if (
+      search &&
+      !incident.user.toLowerCase().includes(search) &&
+      !incident.ip.toLowerCase().includes(search)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
 
   const criticalCount = incidents.filter(
     (incident) => incident.severity === "CRITICAL"
@@ -251,9 +284,48 @@ function App() {
 
           <h2>Recent Security Incidents</h2>
 
+          <div className="filters">
+            {/* DropDown για Severity */}
+            <select
+              value={severityFilter}
+              onChange={(event) => setSeverityFilter(event.target.value)}
+            >
+              <option value="ALL">All Severities</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+
+            {/* DropDown για Threats*/}
+            <select
+              value={threatFilter}
+              onChange={(event) => setThreatFilter(event.target.value)}
+            >
+              <option value="ALL">All Threat Types</option>
+              <option value="Brute Force">Brute Force</option>
+              <option value="Suspicious IP Activity">
+                Suspicious IP Activity
+              </option>
+              <option value="Unusual Login">Unusual Login</option>
+              <option value="Privilege Escalation">
+                Privilege Escalation
+              </option>
+              <option value="ML Anomaly">ML Anomaly</option>
+            </select>
+
+            <input
+              type="text"
+              placeholder="Search user or IP..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+
+          </div>
+
           <div className="incidents">
 
-            {incidents.map((incident, index) => {
+            {filteredIncidents.map((incident, index) => {
 
               const severityClass =
                 incident.severity === "CRITICAL"
@@ -262,8 +334,16 @@ function App() {
                   ? "severity-high"
                   : "severity-medium";
 
-              return (
-                <div className="incident" key={index}>
+              return (  
+                  <div
+                    className="incident"
+                    key={index}
+                    onClick={() =>
+                      setExpandedIncident(
+                        expandedIncident === index ? null : index
+                      )
+                    }
+                  >
 
                   <div className="incident-header">
 
@@ -275,131 +355,136 @@ function App() {
 
                   </div>
 
-                  <div className="incident-info">
+                  {expandedIncident === index && (
+                    <div className="incident-info">
 
-                    <div>
-                      <div className="info-label">
-                        IP Address
-                      </div>
-
-                      <div className="info-value">
-                        {incident.ip}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="info-label">
-                        Risk Score
-                      </div>
-
-                      <div className="info-value">
-                        {incident.risk_score}/100
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="info-label">
-                        Threat Count
-                      </div>
-
-                      <div className="info-value">
-                        {incident.threats.length}
-                      </div>
-                    </div>
-
-                  </div>
-
-                  <div className="threats">
-
-                    <div className="threats-title">
-                      Detected Threats
-                    </div>
-
-                    <div className="threat-list">
-
-                      {incident.threats.map(
-                        (threat, threatIndex) => (
-                          <span
-                            className="threat"
-                            key={threatIndex}
-                          >
-                            {threat}
-                          </span>
-                        )
-                      )}
-
-                    </div>
-
-                  </div>
-
-                  <div className="details">
-
-                    <div className="details-title">
-                      Incident Details
-                    </div>
-
-                    <div className="details-list">
-
-                      {incident.details.map((detail, detailIndex) => (
-
-                        <div className="detail-item" key={detailIndex}>
-
-                          <strong>{detail.type}</strong>
-
-                          {detail.attempts !== undefined && (
-                            <p>Failed attempts: {detail.attempts}</p>
-                          )}
-
-                          {detail.failed_attempts !== undefined && (
-                            <p>Failed attempts: {detail.failed_attempts}</p>
-                          )}
-
-                          {detail.users_targeted !== undefined && (
-                            <p>Users targeted: {detail.users_targeted}</p>
-                          )}
-
-                          {detail.timestamp !== undefined && (
-                            <p>Timestamp: {detail.timestamp}</p>
-                          )}
-
-                          {detail.events !== undefined && (
-                            <p>Total events: {detail.events}</p>
-                          )}
-
-                          {detail.failed_logins !== undefined && (
-                            <p>Failed logins: {detail.failed_logins}</p>
-                          )}
-
-                          {detail.successful_logins !== undefined && (
-                            <p>Successful logins: {detail.successful_logins}</p>
-                          )}
-
-                          {detail.privilege_changes !== undefined && (
-                            <p>Privilege changes: {detail.privilege_changes}</p>
-                          )}
-
-                          {detail.password_changes !== undefined && (
-                            <p>Password changes: {detail.password_changes}</p>
-                          )}
-
-                          {detail.explanation !== undefined && (
-                            <div className="detail-explanation">
-                              <div className="explanation-label">
-                                AI Explanation
-                              </div>
-
-                              <p>{detail.explanation}</p>
-                            </div>
-                          )}
-
+                      <div>
+                        <div className="info-label">
+                          IP Address
                         </div>
 
-                      ))}
+                        <div className="info-value">
+                          {incident.ip}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="info-label">
+                          Risk Score
+                        </div>
+
+                        <div className="info-value">
+                          {incident.risk_score}/100
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="info-label">
+                          Threat Count
+                        </div>
+
+                        <div className="info-value">
+                          {incident.threats.length}
+                        </div>
+                      </div>
 
                     </div>
+                  )}
 
-                  </div>
+                  {expandedIncident === index && (
+                    <div className="threats">
 
+                      <div className="threats-title">
+                        Detected Threats
+                      </div>
+
+                      <div className="threat-list">
+
+                        {incident.threats.map(
+                          (threat, threatIndex) => (
+                            <span
+                              className="threat"
+                              key={threatIndex}
+                            >
+                              {threat}
+                            </span>
+                          )
+                        )}
+
+                      </div>
+
+                    </div>
+                  )}
+
+                  {expandedIncident === index && (
+                    <div className="details">
+
+                      <div className="details-title">
+                        Incident Details
+                      </div>
+
+                      <div className="details-list">
+
+                        {incident.details.map((detail, detailIndex) => (
+
+                          <div className="detail-item" key={detailIndex}>
+
+                            <strong>{detail.type}</strong>
+
+                            {detail.attempts !== undefined && (
+                              <p>Failed attempts: {detail.attempts}</p>
+                            )}
+
+                            {detail.failed_attempts !== undefined && (
+                              <p>Failed attempts: {detail.failed_attempts}</p>
+                            )}
+
+                            {detail.users_targeted !== undefined && (
+                              <p>Users targeted: {detail.users_targeted}</p>
+                            )}
+
+                            {detail.timestamp !== undefined && (
+                              <p>Timestamp: {detail.timestamp}</p>
+                            )}
+
+                            {detail.events !== undefined && (
+                              <p>Total events: {detail.events}</p>
+                            )}
+
+                            {detail.failed_logins !== undefined && (
+                              <p>Failed logins: {detail.failed_logins}</p>
+                            )}
+
+                            {detail.successful_logins !== undefined && (
+                              <p>Successful logins: {detail.successful_logins}</p>
+                            )}
+
+                            {detail.privilege_changes !== undefined && (
+                              <p>Privilege changes: {detail.privilege_changes}</p>
+                            )}
+
+                            {detail.password_changes !== undefined && (
+                              <p>Password changes: {detail.password_changes}</p>
+                            )}
+
+                            {detail.explanation !== undefined && (
+                              <div className="detail-explanation">
+                                <div className="explanation-label">
+                                  AI Explanation
+                                </div>
+
+                                <p>{detail.explanation}</p>
+                              </div>
+                            )}
+
+                          </div>
+
+                        ))}
+
+                      </div>
+
+                    </div>
+                  )}
                   
                   {/* Recommended Actions */}
 
