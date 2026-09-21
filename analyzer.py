@@ -533,6 +533,48 @@ def detect_anomalies(logs):
 
     return anomalies
 
+
+def get_recommended_actions(threats):
+    """
+    Generate recommended investigation actions
+    based on the detected threats.
+    """
+
+    actions = []
+
+    if "Brute Force" in threats:
+        actions.append(
+            "Review failed login attempts and affected account"
+        )
+
+    if "Suspicious IP Activity" in threats:
+        actions.append(
+            "Investigate the suspicious IP address"
+        )
+
+    if "Unusual Login" in threats:
+        actions.append(
+            "Review the unusual login time and authentication activity"
+        )
+
+    if "Privilege Escalation" in threats:
+        actions.append(
+            "Review recent privilege changes"
+        )
+
+    if "ML Anomaly" in threats:
+        actions.append(
+            "Review the activity identified by the anomaly detection model"
+        )
+
+    if not actions:
+        actions.append(
+            "Review the incident and related security events"
+        )
+
+    return actions
+
+
 def calculate_risk(alerts):
     
     # Δημιουργούμε ένα άδειο dictionary. 
@@ -557,17 +599,20 @@ def calculate_risk(alerts):
 
         # Ελέγχουμε αν έχουμε ήδη δημιουργήσει incident για αυτό το user + IP.
         if key not in incidents:
-            # Αν δεν υπάρχει, δημιουργούμε νέο incident.
+            # Αν δεν υπάρχει, δημιουργούμε νέο incident.  
             incidents[key] = {
                 "user": key[0],
                 "ip": key[1],
-                "threats": []
+                "threats": [],
+                "details": []
             }
+
 
         # Προσθέτουμε τον τύπο του alert # στη λίστα των threats. 
         # Ελέγχουμε πρώτα αν υπάρχει ήδη,ωώστε να μην έχουμε duplicate threats.
         if alert["type"] not in incidents[key]["threats"]:
             incidents[key]["threats"].append(alert["type"])
+            incidents[key]["details"].append(alert)
 
 
     # ============================================
@@ -600,14 +645,12 @@ def calculate_risk(alerts):
 
         # Για κάθε user + IP incident που χρησιμοποιεί αυτή την IP...
         for key in matching_incidents:
+            for detail in incidents[unknown_key]["details"]:
+                threat = detail["type"]
 
-            # Παίρνουμε κάθε threat που είχε συνδεθεί μόνο με την IP.
-            for threat in ip_threats:
-
-                # Αν το συγκεκριμένο threat δεν υπάρχει ήδη στο incident...
                 if threat not in incidents[key]["threats"]:
-                    # ...το προσθέτουμε.
                     incidents[key]["threats"].append(threat)
+                    incidents[key]["details"].append(detail)
 
         # Αφού συνδέσαμε το IP-based alert με τους αντίστοιχους users,
         # διαγράφουμε το UNKNOWN incident.
@@ -737,8 +780,14 @@ def calculate_risk(alerts):
 
         else:
             incident["severity"] = "LOW"
+            
+        # Προτεινόμενες Ενέργειες
+        incident["recommended_actions"] = get_recommended_actions(
+            incident["threats"]
+        )
 
     # Επιστρέφουμε όλα τα incidents μαζί με τα threats, το risk score και το severity.
+    print(incidents)
     return incidents
 
 

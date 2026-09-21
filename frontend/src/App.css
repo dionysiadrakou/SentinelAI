@@ -242,3 +242,156 @@ body {
   }
 }
 
+
+/* =========================
+   MODERN SECURITY CHART
+   ========================= */
+
+.chart-container {
+  width: 100%;
+  height: 300px;
+  margin-top: 20px;
+  background-color: #0d1526;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 18px 12px 8px;
+  overflow: hidden;
+}
+
+.events-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chart-grid {
+  stroke: #1e293b;
+  stroke-width: 1;
+  opacity: 0.8;
+}
+
+.chart-line {
+  stroke: #38bdf8;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.35));
+}
+
+.chart-point {
+  fill: #38bdf8;
+  stroke: #0d1526;
+  stroke-width: 3;
+}
+
+.chart-label {
+  fill: #94a3b8;
+  font-size: 11px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+
+/* =========================
+   INCIDENT DETAILS
+   ========================= */
+
+.details {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #1f2937;
+}
+
+.details-title {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.details-list {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-item {
+  background-color: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 7px;
+  padding: 12px 14px;
+}
+
+.detail-item strong {
+  display: block;
+  color: #e5e7eb;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.detail-item p {
+  margin: 4px 0;
+  color: #9ca3af;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.detail-item p:last-child {
+  margin-bottom: 0;
+}
+
+.detail-explanation {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #0b1120;
+  border-left: 3px solid #38bdf8;
+  border-radius: 6px;
+}
+
+.explanation-label {
+  color: #38bdf8;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.detail-explanation p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+/* =========================
+   RECOMMENDED ACTIONS
+   ========================= */
+
+.recommended-actions {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #1f2937;
+}
+
+.recommended-actions-title {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.recommended-actions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.recommended-actions li {
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
+.recommended-actions li:last-child {
+  margin-bottom: 0;
+}

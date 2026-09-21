@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
+from analyzer import analyze_logs, load_logs
+from collections import Counter
 
 # Προσθήκη του βασικού φακέλου του project στη διαδρομή αναζήτησης της Python, 
 # ώστε να μπορεί να γίνει import του analyzer.py από τον φάκελο backend.
@@ -26,12 +28,31 @@ def home():
     return {"message": "SentinelAI API is running"}
 
 # Ανάλυση των security logs και επιστροφή των περιστατικών που εντοπίστηκαν.
-@app.get("/analyze")
-def get_analysis():
-    incidents = analyze_logs()
+@app.get("/analyze") 
+def get_analysis(): 
+    incidents = analyze_logs() 
+    logs = load_logs() 
 
-    return {
-        "total_incidents": len(incidents),
-        "incidents": list(incidents.values())
+    suspicious_ips = set()
+
+    for incident in incidents.values(): 
+        if "Suspicious IP Activity" in incident["threats"]: 
+            suspicious_ips.add(incident["ip"])
+
+    
+    events_by_hour = Counter()
+    for log in logs:
+        hour = log["timestamp"].strftime("%H:00")
+        events_by_hour[hour] += 1
+
+
+    return { 
+        "total_events": len(logs), 
+        "total_incidents": len(incidents), 
+        "suspicious_ips": len(suspicious_ips),
+        "events_over_time": [ 
+            {"time": hour, "count": count} 
+            for hour, count in sorted(events_by_hour.items()) 
+        ],
+        "incidents": list(incidents.values()) 
     }
-
