@@ -18,3 +18,5 @@ frontend/dist/
 # VS Code settings
 .vscode/
 
+# Uploaded security logs
+uploaded_security_logs.csv

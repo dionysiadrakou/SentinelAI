@@ -3,6 +3,7 @@ import "./App.css";
 
 function App() {
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [threatFilter, setThreatFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,7 +32,9 @@ function App() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.detail || "Upload failed");
+        throw new Error(
+          result.detail || "Unable to upload and analyze the file."
+        );
       }
 
       setData((previousData) => ({
@@ -46,21 +49,48 @@ function App() {
       alert(result.message);
 
     } catch (error) {
-      alert("Upload failed: " + error.message);
-    }
+        if (error.message === "Failed to fetch") {
+          alert(
+            "Upload failed: Unable to connect to the SentinelAI server. Please make sure the backend is running."
+          );
+        } else {
+          alert("Upload failed: " + error.message);
+        }
+      }
   };
 
 
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/analyze")
-      .then((response) => response.json())
-      .then((result) => setData(result))
-      .catch((error) => console.error("Error:", error));
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to load dashboard data");
+          }
+
+          return response.json();
+        })
+        .then((result) => {
+          setData(result);
+        })
+        .catch(() => {
+          setError(
+            "Unable to connect to the SentinelAI server. Please make sure the backend is running."
+          );
+        });
   }, []);
 
+  if (error) {
+    return (
+      <div className="error-page">
+        <h2>Unable to connect to SentinelAI backend</h2>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   if (!data) {
-    return <p>Loading...</p>;
+    return <div>Loading...</div>;
   }
 
   const incidents = data.incidents;

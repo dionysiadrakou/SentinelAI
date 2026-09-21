@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
@@ -62,9 +62,10 @@ def get_analysis():
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".csv"):
-        return {
-            "error": "Only CSV files are allowed"
-        }
+        raise HTTPException(
+            status_code=400,
+            detail="Only CSV files are allowed"
+        )
 
     contents = await file.read()
 
@@ -82,16 +83,25 @@ async def upload_file(file: UploadFile = File(...)):
         "ip",
         "event",
         "status"
-    }
+        }
 
     with open(upload_path, "r", encoding="utf-8") as uploaded_file:
-        header = uploaded_file.readline().strip().split(",")
+        header_line = uploaded_file.readline().strip()
+
+    if not header_line:
+        raise HTTPException(
+            status_code=400,
+            detail="CSV file is empty"
+        )
+
+    header = header_line.split(",")
 
     if not required_columns.issubset(set(header)):
-        return {
-            "error": "Invalid CSV format. Required columns: timestamp, user, ip, event, status"
-        }
-        
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid CSV format. Required columns: timestamp, user, ip, event, status"
+        )
+            
     with open(upload_path, "r", encoding="utf-8") as uploaded_file:
         next(uploaded_file)
 
@@ -99,19 +109,28 @@ async def upload_file(file: UploadFile = File(...)):
             values = line.strip().split(",")
 
             if len(values) != 5:
-                return {
-                    "error": f"Invalid data format on line {line_number}"
-                }
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid data format on line {line_number}"
+                )
 
             try:
                 datetime.fromisoformat(values[0])
             except ValueError:
-                return {
-                    "error": f"Invalid timestamp on line {line_number}"
-                }
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid timestamp on line {line_number}"
+                )
 
-    incidents = analyze_logs(upload_path)
-    logs = load_logs(upload_path)
+    try:
+        incidents = analyze_logs(upload_path)
+        logs = load_logs(upload_path)
+
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while analyzing the uploaded file."
+        )
 
     suspicious_ips = set()
 
