@@ -7,6 +7,50 @@ function App() {
   const [threatFilter, setThreatFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedIncident, setExpandedIncident] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert("Please select a CSV file first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/upload",
+        {
+          method: "POST",
+          body: formData
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.detail || "Upload failed");
+      }
+
+      setData((previousData) => ({
+        ...previousData,
+        total_events: result.total_events,
+        total_incidents: result.total_incidents,
+        suspicious_ips: result.suspicious_ips,
+        events_over_time: result.events_over_time,
+        incidents: result.incidents
+      }));
+
+      alert(result.message);
+
+    } catch (error) {
+      alert("Upload failed: " + error.message);
+    }
+  };
+
+
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/analyze")
@@ -104,6 +148,18 @@ function App() {
 
   return (
     <div className="app">
+
+      <div className="upload-section">
+        <h2>Upload Security Logs</h2>
+        <input
+          type="file"
+          accept=".csv"
+          onChange={(event) => setSelectedFile(event.target.files[0])}
+        />
+        <button onClick={handleUpload}>
+          Upload & Analyze
+        </button>
+      </div>
 
       <header className="header">
         <h1>SentinelAI</h1>

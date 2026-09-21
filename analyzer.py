@@ -13,10 +13,13 @@ FAILED_ATTEMPTS_THRESHOLD = 3
 # να συμβούν οι αποτυχημένες προσπάθειες.
 TIME_WINDOW_MINUTES = 5
 
-def load_logs():
+def load_logs(file_path=None):
+    if file_path is None:
+        file_path = LOG_FILE
+
     logs = []
 
-    with open(LOG_FILE, "r", encoding="utf-8") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         # Το DictReader διαβάζει κάθε γραμμή του CSV 
         # και τη μετατρέπει σε dictionary. 
         # 
@@ -791,8 +794,8 @@ def calculate_risk(alerts):
     return incidents
 
 
-def analyze_logs():
-    logs = load_logs()
+def analyze_logs(file_path=None):
+    logs = load_logs(file_path)
 
     brute_force_alerts = detect_brute_force(logs)
     unusual_login_alerts = detect_unusual_login(logs)
