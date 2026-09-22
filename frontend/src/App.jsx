@@ -5,13 +5,82 @@ function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [severityFilter, setSeverityFilter] = useState("ALL");
+  const [token, setToken] = useState(localStorage.getItem("sentinelai_token"));
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [threatFilter, setThreatFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedIncident, setExpandedIncident] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  
+  const handleLogin = async () => {
+    try {
+
+      // Στέλνουμε το username και το password
+      // στο endpoint /login του FastAPI backend.
+      const response = await fetch(
+        "http://127.0.0.1:8000/login",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+
+          body: new URLSearchParams({
+            username: username,
+            password: password
+          })
+        }
+      );
+
+      // Παίρνουμε την απάντηση του backend σε JSON.
+      const result = await response.json();
+
+      // Αν το login απέτυχε,
+      // εμφανίζουμε το μήνυμα του backend.
+      if (!response.ok) {
+        throw new Error(
+          result.detail || "Login failed"
+        );
+      }
+
+      // Αποθηκεύουμε το JWT token
+      // που μας επέστρεψε το backend.
+      setToken(result.access_token);
+
+      localStorage.setItem(
+        "sentinelai_token",
+        result.access_token
+      );
+
+      // Καθαρίζουμε το password.
+      setPassword("");
+
+    } catch (error) {
+
+      // Εμφανίζουμε μήνυμα σε περίπτωση
+      // αποτυχίας του login.
+      alert("Login failed: " + error.message);
+    }
+  };
+
+
+  const handleLogout = () => {
+    // Διαγράφουμε το JWT token
+    // από το Local Storage.
+    localStorage.removeItem("sentinelai_token");
+
+    // Αφαιρούμε το token και από το React state.
+    setToken(null);
+      // Καθαρίζουμε τα δεδομένα του dashboard.
+      setData(null);
+    };
+
+
   const handleUpload = async () => {
+
+    {/* Έλεγχος αν έχει επιλεχθέι αρχείο CSV πριν το upload */}
     if (!selectedFile) {
       alert("Please select a CSV file first.");
       return;
@@ -25,12 +94,21 @@ function App() {
         "http://127.0.0.1:8000/upload",
         {
           method: "POST",
+
+          headers: {
+            // Στέλνουμε το JWT token
+            // μαζί με το upload request.
+            Authorization: `Bearer ${token}`
+          },
+
           body: formData
         }
       );
 
-      const result = await response.json();
+      {/* Έλεγχος αν το HTTP Request ολοκλρώθηκε επιτυχώς */}
 
+      {/* Παίρνουμε την απάντηση του backend σε JSON μορφή */}
+      const result = await response.json();
       if (!response.ok) {
         throw new Error(
           result.detail || "Unable to upload and analyze the file."
@@ -49,11 +127,13 @@ function App() {
       alert(result.message);
 
     } catch (error) {
+        {/* Έλεγχος ότι το frontend μπορεί να επικοινωνήσει με το FastAPI Backend κατά το Upload*/}
         if (error.message === "Failed to fetch") {
           alert(
             "Upload failed: Unable to connect to the SentinelAI server. Please make sure the backend is running."
           );
         } else {
+          {/* Γενικό error message */}
           alert("Upload failed: " + error.message);
         }
       }
@@ -61,30 +141,88 @@ function App() {
 
 
 
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/analyze")
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Failed to load dashboard data");
-          }
+ useEffect(() => {
+    // Αν δεν υπάρχει JWT token,
+    // δεν προσπαθούμε να καλέσουμε το protected endpoint.
+    if (!token) {
+      return;
+    }
 
-          return response.json();
-        })
-        .then((result) => {
-          setData(result);
-        })
-        .catch(() => {
-          setError(
-            "Unable to connect to the SentinelAI server. Please make sure the backend is running."
-          );
-        });
-  }, []);
+    fetch(
+      "http://127.0.0.1:8000/analyze",
+      {
+        headers: {
+          // Στέλνουμε το JWT token
+          // στο Authorization header.
+          //
+          // Η μορφή πρέπει να είναι:
+          // Authorization: Bearer <token>
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+      .then((response) => {
+
+        // Αν το token είναι άκυρο ή έχει λήξει,
+        // το backend επιστρέφει 401.
+        if (!response.ok) {
+          throw new Error("Failed to load dashboard data");
+        }
+
+        return response.json();
+      })
+
+      .then((result) => {
+        // Αποθηκεύουμε τα δεδομένα
+        // του dashboard.
+        setData(result);
+      })
+
+      .catch(() => {
+
+        // Αν το frontend δεν μπορεί να
+        // επικοινωνήσει με το backend,
+        // εμφανίζουμε μήνυμα σφάλματος.
+        setError(
+          "Unable to connect to the SentinelAI server. Please make sure the backend is running."
+        );
+      });
+
+  }, [token]);
 
   if (error) {
     return (
       <div className="error-page">
         <h2>Unable to connect to SentinelAI backend</h2>
         <p>{error}</p>
+      </div>
+    );
+  }
+
+  if (!token) {
+    return (
+      <div className="login-section">
+
+        <h2>SentinelAI Login</h2>
+
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+
+        <button onClick={handleLogin}>
+          Login
+        </button>
+
       </div>
     );
   }
@@ -178,6 +316,10 @@ function App() {
 
   return (
     <div className="app">
+
+      <button onClick={handleLogout}>
+        Logout
+      </button>
 
       <div className="upload-section">
         <h2>Upload Security Logs</h2>
