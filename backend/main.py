@@ -5,6 +5,8 @@ from datetime import datetime
 from analyzer import analyze_logs, load_logs
 from collections import Counter
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import (OAuth2PasswordRequestForm, OAuth2PasswordBearer)
 from fastapi import Depends
@@ -14,9 +16,43 @@ from backend.auth import (TEST_USERNAME, TEST_PASSWORD_HASH, verify_password, cr
 # ώστε να μπορεί να γίνει import του analyzer.py από τον φάκελο backend.
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from analyzer import analyze_logs
 
 app = FastAPI()
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=[
+        "127.0.0.1",
+        "localhost"
+    ]
+)
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+
+        # Προχωράμε κανονικά στο endpoint.
+        response = await call_next(request)
+
+        # Αποτρέπει το browser από το να "μαντεύει"
+        # διαφορετικό τύπο περιεχομένου.
+        response.headers["X-Content-Type-Options"] = "nosniff"
+
+        # Αποτρέπει το embedding της εφαρμογής
+        # μέσα σε iframe από άλλο site.
+        response.headers["X-Frame-Options"] = "DENY"
+
+        # Περιορίζει το πόσο information μπορεί
+        # να στείλει το browser μέσω του Referer.
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+        # Ενεργοποιεί βασική προστασία XSS σε browsers
+        # που την υποστηρίζουν.
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # ========================================================
 # JWT AUTHENTICATION
