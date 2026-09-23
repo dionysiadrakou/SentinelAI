@@ -1,6 +1,8 @@
 import sys
 import os
 import csv
+import psycopg
+from dotenv import load_dotenv
 from datetime import datetime
 from analyzer import analyze_logs, load_logs
 from collections import Counter
@@ -12,13 +14,15 @@ from fastapi.security import (OAuth2PasswordRequestForm, OAuth2PasswordBearer)
 from fastapi import Depends
 from backend.auth import (TEST_USERNAME, TEST_PASSWORD_HASH, verify_password, create_access_token, get_current_user)
 
-# Προσθήκη του βασικού φακέλου του project στη διαδρομή αναζήτησης της Python, 
-# ώστε να μπορεί να γίνει import του analyzer.py από τον φάκελο backend.
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv()
 
+# Προσθήκη του βασικού φακέλου του project στο Python path,
+# ώστε το backend να μπορεί να κάνει import το analyzer.py.
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 app = FastAPI()
 
+# Επιτρέπει requests μόνο από γνωστούς hosts.
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=[
@@ -27,6 +31,8 @@ app.add_middleware(
     ]
 )
 
+
+#------------ SECURITY HEADERS -------------
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
 
@@ -51,34 +57,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         return response
 
-
+# Εφαρμογή των security headers σε όλα τα responses.
 app.add_middleware(SecurityHeadersMiddleware)
 
-# ========================================================
-# JWT AUTHENTICATION
-# ========================================================
 
-# Δηλώνουμε ότι το JWT token θα βρίσκεται
-# στο Authorization header του request.
-#
-# Το token θα έχει τη μορφή:
-#
-# Authorization: Bearer <JWT_TOKEN>
-#
-# Το tokenUrl δείχνει στο endpoint
-# που χρησιμοποιείται για το login.
+#------------ JWT AUTHENTICATION -------------
+
+# Τα JWT tokens αποστέλλονται μέσω Authorization header 
+# με τη μορφή: Bearer <JWT_TOKEN>.
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/login"
 )
 
-# ========================================================
-# LOGIN
-# ========================================================
+
+#------------ LOGIN -------------
 
 # Endpoint για authentication του χρήστη.
-#
-# Ο χρήστης στέλνει username και password.
-#
 # Αν τα στοιχεία είναι σωστά,
 # δημιουργούμε και επιστρέφουμε ένα JWT token.
 @app.post("/login")
@@ -113,6 +107,7 @@ def login(
         "token_type": "bearer"
     }
 
+
 # Επιτρέπει στο React frontend να επικοινωνεί με το FastAPI backend.
 app.add_middleware(
     CORSMiddleware,
@@ -122,20 +117,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Έλεγχος ότι το API λειτουργεί.
 @app.get("/")
 def home():
     return {"message": "SentinelAI API is running"}
 
+
 # Ανάλυση των security logs και επιστροφή των περιστατικών που εντοπίστηκαν.
 @app.get("/analyze") 
 def get_analysis(token: str = Depends(oauth2_scheme)): 
-    # ========================================================
-    # VERIFY JWT TOKEN
-    # ========================================================
-
-    # Ελέγχουμε αν το JWT token που έστειλε
-    # ο χρήστης είναι έγκυρο.
+    
+    # Ελέγχουμε αν το JWT token που έστειλε ο χρήστης είναι έγκυρο.
     current_user = get_current_user(token)
 
     # Αν το token δεν είναι έγκυρο,
@@ -146,21 +139,22 @@ def get_analysis(token: str = Depends(oauth2_scheme)):
             detail="Invalid or expired token"
         )
         
+    # Εκτελούμε την ανάλυση και φορτώνουμε τα logs.
     incidents = analyze_logs() 
     logs = load_logs() 
 
+    # Εντοπίζουμε τις ύποπτες IPs.
     suspicious_ips = set()
 
     for incident in incidents.values(): 
         if "Suspicious IP Activity" in incident["threats"]: 
             suspicious_ips.add(incident["ip"])
 
-    
+    # Μετράμε τα events ανά ώρα.
     events_by_hour = Counter()
     for log in logs:
         hour = log["timestamp"].strftime("%H:00")
         events_by_hour[hour] += 1
-
 
     return { 
         "total_events": len(logs), 
@@ -173,13 +167,34 @@ def get_analysis(token: str = Depends(oauth2_scheme)):
         "incidents": list(incidents.values()) 
     }
     
+   
+def save_uploaded_logs_to_database(logs):
+    database_url = os.getenv("DATABASE_URL")
+
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is not configured")
+
+    with psycopg.connect(database_url) as conn:
+        for log in logs:
+            conn.execute(
+                """
+                INSERT INTO uploaded_security_logs
+                (timestamp, username, ip, event, status)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (
+                    log["timestamp"],
+                    log["user"],
+                    log["ip"],
+                    log["event"],
+                    log["status"]
+                )
+            )
+
+        conn.commit()
+   
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), token: str = Depends(oauth2_scheme)):
-    
-    # ========================================================
-    # VERIFY JWT TOKEN
-    # ========================================================
-
     # Ελέγχουμε αν το JWT token που έστειλε
     # ο χρήστης είναι έγκυρο.
     current_user = get_current_user(token)
@@ -192,16 +207,12 @@ async def upload_file(file: UploadFile = File(...), token: str = Depends(oauth2_
             detail="Invalid or expired token"
         )
     
-    # Έλεγχος αν το αρχείο που ανέβηκε είναι .csv
+    # Επιτρέπουμε μόνο αρχεία CSV.
     if not file.filename.lower().endswith(".csv"):
         raise HTTPException(
             status_code=400,
             detail="Only CSV files are allowed"
         )
-
-    # ========================================================
-    # FILE SIZE LIMIT
-    # ========================================================
 
     # Μέγιστο επιτρεπόμενο μέγεθος αρχείου: 5 MB.
     MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -223,6 +234,7 @@ async def upload_file(file: UploadFile = File(...), token: str = Depends(oauth2_
     with open(upload_path, "wb") as output_file:
         output_file.write(contents)
 
+    # Απαιτούμενες στήλες του CSV.
     required_columns = {
         "timestamp",
         "user",
@@ -283,10 +295,13 @@ async def upload_file(file: UploadFile = File(...), token: str = Depends(oauth2_
                     detail=f"Invalid timestamp on line {line_number}"
                 )
 
+    uploaded_logs = load_logs(upload_path)
+    save_uploaded_logs_to_database(uploaded_logs)
+    
     # Έλεγχος σε περίπτωση που προκύψει σφάλμα κατά την ανάλυση του CSV
     try:
-        incidents = analyze_logs(upload_path)
-        logs = load_logs(upload_path)
+        incidents = analyze_logs(use_uploaded_db=True)
+        logs = load_logs(use_uploaded_db=True)
 
     except Exception:
         raise HTTPException(
@@ -294,12 +309,14 @@ async def upload_file(file: UploadFile = File(...), token: str = Depends(oauth2_
             detail="An error occurred while analyzing the uploaded file."
         )
 
+    # Εντοπίζουμε τις ύποπτες IPs.
     suspicious_ips = set()
 
     for incident in incidents.values():
         if "Suspicious IP Activity" in incident["threats"]:
             suspicious_ips.add(incident["ip"])
 
+    # Μετράμε τα events ανά ώρα.
     events_by_hour = Counter()
 
     for log in logs:

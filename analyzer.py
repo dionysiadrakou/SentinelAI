@@ -1,7 +1,12 @@
 from collections import Counter
 import csv
+import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import psycopg
 from sklearn.ensemble import IsolationForest
+
+load_dotenv()
 
 LOG_FILE = "C:\\Users\\dionysia\\Desktop\\portofolio\\SentinelAI\\security_logs.csv"
 
@@ -13,38 +18,70 @@ FAILED_ATTEMPTS_THRESHOLD = 3
 # να συμβούν οι αποτυχημένες προσπάθειες.
 TIME_WINDOW_MINUTES = 5
 
-def load_logs(file_path=None):
+def load_logs(file_path=None, use_uploaded_db=False):
+    if use_uploaded_db:
+        database_url = os.getenv("DATABASE_URL")
+
+        if not database_url:
+            raise RuntimeError("DATABASE_URL is not configured")
+
+        with psycopg.connect(database_url) as conn:
+            rows = conn.execute("""
+                SELECT timestamp, username, ip, event, status
+                FROM uploaded_security_logs
+                ORDER BY timestamp
+            """).fetchall()
+
+        logs = []
+
+        for row in rows:
+            logs.append({
+                "timestamp": row[0],
+                "user": row[1],
+                "ip": row[2],
+                "event": row[3],
+                "status": row[4]
+            })
+
+        return logs
+    
     if file_path is None:
-        file_path = LOG_FILE
+        database_url = os.getenv("DATABASE_URL")
+
+        if not database_url:
+            raise RuntimeError("DATABASE_URL is not configured")
+
+        with psycopg.connect(database_url) as conn:
+            rows = conn.execute("""
+                SELECT timestamp, username, ip, event, status
+                FROM security_logs
+                ORDER BY timestamp
+            """).fetchall()
+
+        logs = []
+
+        for row in rows:
+            logs.append({
+                "timestamp": row[0],
+                "user": row[1],
+                "ip": row[2],
+                "event": row[3],
+                "status": row[4]
+            })
+
+        return logs
 
     logs = []
 
     with open(file_path, "r", encoding="utf-8") as file:
-        # Το DictReader διαβάζει κάθε γραμμή του CSV 
-        # και τη μετατρέπει σε dictionary. 
-        # 
-        # Για παράδειγμα:
-        # timestamp,user,ip,event,status  
-        
-        # γίνεται: 
-        
-        # { 
-        #   "timestamp": "...", 
-        #   "user": "anna", 
-        #   "ip": "192.168.1.50", 
-        #   "event": "login", 
-        #   "status": "failed" 
-        # }
         reader = csv.DictReader(file)
 
         for row in reader:
-            # Το timestamp αρχικά είναι string και μετά το μετατρέπουμε σε datetime
             row["timestamp"] = datetime.strptime(
                 row["timestamp"],
                 "%Y-%m-%d %H:%M:%S"
             )
 
-            # προσθέτουμε το log στη λίστα
             logs.append(row)
 
     return logs
@@ -395,8 +432,7 @@ def detect_anomalies(logs):
             failed_login_rate,
             privilege_changes,
             password_changes,
-            night_logins,
-            unique_ips
+            night_logins
         ])
 
         metadata.append({
@@ -426,6 +462,20 @@ def detect_anomalies(logs):
     # 1. κάνει fit/train το μοντέλο στα δεδομένα 
     # 2. κάνει prediction για κάθε feature vector
     predictions = model.fit_predict(features)
+    raw_scores = model.decision_function(features)
+
+    min_score = min(raw_scores)
+    max_score = max(raw_scores)
+
+    if max_score != min_score:
+        anomaly_scores = [
+            round(
+                ((max_score - score) / (max_score - min_score)) * 100
+            )
+            for score in raw_scores
+        ]
+    else:
+        anomaly_scores = [0 for score in raw_scores]
 
     # ============================================
     # 4. Create anomaly alerts
@@ -440,11 +490,8 @@ def detect_anomalies(logs):
     # feature -> feature vector 
     # 
     # Το zip τα "ενώνει" μεταξύ τους.
-    for prediction, info, feature in zip(
-        predictions,
-        metadata,
-        features
-    ):
+    for prediction, anomaly_score, info, feature in zip(
+        predictions, anomaly_scores, metadata, features):
 
         # Στο Isolation Forest: 
         # 
@@ -461,7 +508,6 @@ def detect_anomalies(logs):
             privilege_changes = feature[4]
             password_changes = feature[5]
             night_logins = feature[6]
-            unique_ips = feature[7]
 
             # Δημιουργούμε μια κενή λίστα για να αποθηκεύσουμε τους λόγους
             reasons = []
@@ -496,11 +542,7 @@ def detect_anomalies(logs):
                     "Login activity during unusual hours"
                 )
 
-            # Αν ο χρήστης έχει χρησιμοποιήσει περισσότερες από μία IP, το αναφέρουμε.
-            if unique_ips > 1:
-                reasons.append(
-                    "User accessed the system from multiple IPs"
-                )
+
 
             # ----------------------------------------
             # Fallback explanation
@@ -516,6 +558,8 @@ def detect_anomalies(logs):
             # Ενώνουμε όλους τους λόγους σε ένα ενιαίο string.
             explanation = "; ".join(reasons)
 
+            ml_score = anomaly_score
+
             # Δημιουργούμε το anomaly alert και το προσθέτουμε στη λίστα.
             anomalies.append({
                 "type": "ML Anomaly",
@@ -530,7 +574,7 @@ def detect_anomalies(logs):
                 "night_logins": night_logins,
                 "unique_ips": unique_ips,
                 "explanation": explanation,
-                "risk_score": 65,
+                "anomaly_score": ml_score,
                 "severity": "HIGH"
             })
 
@@ -754,9 +798,16 @@ def calculate_risk(alerts):
         # ML as supporting evidence
         # ----------------------------------------
 
-        # Αν υπάρχει και ML Anomaly, προσθέτουμε 5 μονάδες.
         if "ML Anomaly" in threats:
-            score += 5
+            ml_alert = next(
+                detail
+                for detail in incident["details"]
+                if detail["type"] == "ML Anomaly"
+            )
+
+            ml_score = ml_alert["anomaly_score"]
+
+            score += round(ml_score * 0.20)
 
 
         # ----------------------------------------
@@ -789,13 +840,11 @@ def calculate_risk(alerts):
             incident["threats"]
         )
 
-    # Επιστρέφουμε όλα τα incidents μαζί με τα threats, το risk score και το severity.
-    print(incidents)
     return incidents
 
 
-def analyze_logs(file_path=None):
-    logs = load_logs(file_path)
+def analyze_logs(file_path=None, use_uploaded_db=False):
+    logs = load_logs(file_path, use_uploaded_db)
 
     brute_force_alerts = detect_brute_force(logs)
     unusual_login_alerts = detect_unusual_login(logs)

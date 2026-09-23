@@ -13,9 +13,9 @@ function App() {
   const [expandedIncident, setExpandedIncident] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
+  //-------- Λειτουργία LOGIN ---------
   const handleLogin = async () => {
     try {
-
       // Στέλνουμε το username και το password
       // στο endpoint /login του FastAPI backend.
       const response = await fetch(
@@ -45,8 +45,7 @@ function App() {
         );
       }
 
-      // Αποθηκεύουμε το JWT token
-      // που μας επέστρεψε το backend.
+      // Αποθηκεύουμε το JWT token που μας επέστρεψε το backend.
       setToken(result.access_token);
 
       localStorage.setItem(
@@ -59,28 +58,29 @@ function App() {
 
     } catch (error) {
 
-      // Εμφανίζουμε μήνυμα σε περίπτωση
-      // αποτυχίας του login.
+      // Εμφανίζουμε μήνυμα σε περίπτωση αποτυχίας του login.
       alert("Login failed: " + error.message);
     }
   };
 
 
+  //-------- Λειτουργία LOGOUT ---------
   const handleLogout = () => {
-    // Διαγράφουμε το JWT token
-    // από το Local Storage.
+    // Διαγράφουμε το JWT token από το Local Storage.
     localStorage.removeItem("sentinelai_token");
 
     // Αφαιρούμε το token και από το React state.
     setToken(null);
-      // Καθαρίζουμε τα δεδομένα του dashboard.
-      setData(null);
-    };
+
+    // Καθαρίζουμε τα δεδομένα του dashboard.
+    setData(null);
+  };
 
 
+    //-------- Λειτουργία UPLOAD ---------
   const handleUpload = async () => {
 
-    {/* Έλεγχος αν έχει επιλεχθέι αρχείο CSV πριν το upload */}
+    // Έλεγχος αν έχει επιλεχθέι αρχείο CSV πριν το upload 
     if (!selectedFile) {
       alert("Please select a CSV file first.");
       return;
@@ -96,8 +96,7 @@ function App() {
           method: "POST",
 
           headers: {
-            // Στέλνουμε το JWT token
-            // μαζί με το upload request.
+            // Στέλνουμε το JWT token μαζί με το upload request.
             Authorization: `Bearer ${token}`
           },
 
@@ -105,16 +104,17 @@ function App() {
         }
       );
 
-      {/* Έλεγχος αν το HTTP Request ολοκλρώθηκε επιτυχώς */}
-
-      {/* Παίρνουμε την απάντηση του backend σε JSON μορφή */}
+      // Παίρνουμε την απάντηση του backend σε JSON μορφή 
       const result = await response.json();
+
+      // Ελέγχουμε αν το upload ηταν επιτυχές
       if (!response.ok) {
         throw new Error(
           result.detail || "Unable to upload and analyze the file."
         );
       }
 
+      // Ενημερώνουμε τα δεδομένα του dashboard.
       setData((previousData) => ({
         ...previousData,
         total_events: result.total_events,
@@ -127,23 +127,22 @@ function App() {
       alert(result.message);
 
     } catch (error) {
-        {/* Έλεγχος ότι το frontend μπορεί να επικοινωνήσει με το FastAPI Backend κατά το Upload*/}
+        // Ελέγχουμε αν το backend είναι διαθέσιμο.
         if (error.message === "Failed to fetch") {
           alert(
             "Upload failed: Unable to connect to the SentinelAI server. Please make sure the backend is running."
           );
         } else {
-          {/* Γενικό error message */}
+          // Γενικό error message 
           alert("Upload failed: " + error.message);
         }
       }
   };
 
 
-
+  // Φορτώνουμε τα δεδομένα του dashboard από το backend.
  useEffect(() => {
-    // Αν δεν υπάρχει JWT token,
-    // δεν προσπαθούμε να καλέσουμε το protected endpoint.
+    // Αν δεν υπάρχει JWT token, δεν προσπαθούμε να καλέσουμε το protected endpoint.
     if (!token) {
       return;
     }
@@ -152,11 +151,7 @@ function App() {
       "http://127.0.0.1:8000/analyze",
       {
         headers: {
-          // Στέλνουμε το JWT token
-          // στο Authorization header.
-          //
-          // Η μορφή πρέπει να είναι:
-          // Authorization: Bearer <token>
+          // Στέλνουμε το JWT token στο Authorization header.
           Authorization: `Bearer ${token}`
         }
       }
@@ -173,15 +168,13 @@ function App() {
       })
 
       .then((result) => {
-        // Αποθηκεύουμε τα δεδομένα
-        // του dashboard.
+        // Αποθηκεύουμε τα δεδομένα του dashboard.
         setData(result);
       })
 
       .catch(() => {
 
-        // Αν το frontend δεν μπορεί να
-        // επικοινωνήσει με το backend,
+        // Αν το frontend δεν μπορεί να επικοινωνήσει με το backend,
         // εμφανίζουμε μήνυμα σφάλματος.
         setError(
           "Unable to connect to the SentinelAI server. Please make sure the backend is running."
@@ -233,8 +226,9 @@ function App() {
 
   const incidents = data.incidents;
 
+  // Φιλτράρουμε τα incidents σύμφωνα με τα κριτήρια του χρήστη.
   const filteredIncidents = incidents.filter((incident) => {
-
+    // Φιλτράρισμα βάσει severity.
     if (
       severityFilter !== "ALL" &&
       incident.severity !== severityFilter
@@ -242,6 +236,7 @@ function App() {
       return false;
     }
 
+    // Φιλτράρισμα βάσει τύπου απειλής.
     if (
       threatFilter !== "ALL" &&
       !incident.threats.includes(threatFilter)
@@ -251,6 +246,7 @@ function App() {
 
     const search = searchTerm.toLowerCase();
 
+    // Αναζήτηση βάσει username ή IP.
     if (
       search &&
       !incident.user.toLowerCase().includes(search) &&
@@ -262,6 +258,7 @@ function App() {
     return true;
   });
 
+  // Υπολογίζουμε τα incidents ανά severity.
   const criticalCount = incidents.filter(
     (incident) => incident.severity === "CRITICAL"
   ).length;
@@ -274,12 +271,16 @@ function App() {
     (incident) => incident.severity === "MEDIUM"
   ).length;
 
+
+  // Παίρνουμε τα δεδομένα για το γράφημα.
   const chartData = data.events_over_time;
 
+  // Βρίσκουμε τη μέγιστη τιμή του γραφήματος.
   const maxCount = Math.max(
     ...chartData.map((item) => item.count)
   );
 
+  // Διαστάσεις και περιθώρια του γραφήματος.
   const chartWidth = 900;
   const chartHeight = 280;
   const paddingLeft = 50;
@@ -287,12 +288,14 @@ function App() {
   const paddingTop = 20;
   const paddingBottom = 40;
 
+  // Υπολογίζουμε τον διαθέσιμο χώρο του γραφήματος.
   const usableWidth =
     chartWidth - paddingLeft - paddingRight;
 
   const usableHeight =
     chartHeight - paddingTop - paddingBottom;
 
+  // Μετατρέπουμε τα δεδομένα σε σημεία του γραφήματος.
   const points = chartData.map((item, index) => {
     const x =
       paddingLeft +
@@ -310,6 +313,7 @@ function App() {
     };
   });
 
+  // Δημιουργούμε τα σημεία της γραμμής του γραφήματος.
   const linePoints = points
     .map((point) => `${point.x},${point.y}`)
     .join(" ");
@@ -402,13 +406,14 @@ function App() {
 
           <div className="chart-container">
 
+            {/* Δημιουργούμε το γράφημα με SVG. */}
             <svg
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               className="events-chart"
               preserveAspectRatio="none"
             >
 
-              {/* Horizontal grid lines */}
+              {/* Οριζόντιες γραμμές του grid. */}
               <line
                 x1={paddingLeft}
                 y1={paddingTop}
@@ -434,7 +439,7 @@ function App() {
               />
 
 
-              {/* Y-axis labels */}
+              {/* Τιμές του άξονα Y. */}
               <text
                 x="5"
                 y={paddingTop + 5}
@@ -460,7 +465,7 @@ function App() {
               </text>
 
 
-              {/* Line */}
+              {/* Σχεδιάζουμε τη γραμμή του γραφήματος. */}
               <polyline
                 points={linePoints}
                 fill="none"
@@ -468,7 +473,7 @@ function App() {
               />
 
 
-              {/* Data points */}
+              {/* Σχεδιάζουμε τα σημεία των δεδομένων. */}
               {points.map((point) => (
                 <circle
                   key={point.time}
@@ -480,8 +485,7 @@ function App() {
               ))}
 
               {points.map((point, index) => {
-                // Εμφανίζουμε μόνο κάθε δεύτερη ώρα
-                // ώστε ο άξονας να μην είναι φορτωμένος.
+                // Εμφανίζουμε μόνο κάθε δεύτερη ώρα στον άξονα X.
                 if (index % 2 !== 0) {
                   return null;
                 }
@@ -499,8 +503,6 @@ function App() {
                 );
               })}
 
-
-
             </svg>
 
           </div>
@@ -513,7 +515,7 @@ function App() {
           <h2>Recent Security Incidents</h2>
 
           <div className="filters">
-            {/* DropDown για Severity */}
+            {/* Φιλτράρισμα βάσει severity. */}
             <select
               value={severityFilter}
               onChange={(event) => setSeverityFilter(event.target.value)}
@@ -525,7 +527,7 @@ function App() {
               <option value="LOW">Low</option>
             </select>
 
-            {/* DropDown για Threats*/}
+            {/* Φιλτράρισμα βάσει τύπου απειλής. */}
             <select
               value={threatFilter}
               onChange={(event) => setThreatFilter(event.target.value)}
@@ -542,6 +544,7 @@ function App() {
               <option value="ML Anomaly">ML Anomaly</option>
             </select>
 
+            {/* Αναζήτηση βάσει username ή IP. */}
             <input
               type="text"
               placeholder="Search user or IP..."
@@ -551,200 +554,201 @@ function App() {
 
           </div>
 
-          <div className="incidents">
-
-            {filteredIncidents.map((incident, index) => {
-
-              const severityClass =
-                incident.severity === "CRITICAL"
-                  ? "severity-critical"
-                  : incident.severity === "HIGH"
-                  ? "severity-high"
-                  : "severity-medium";
-
-              return (  
-                  <div
-                    className="incident"
-                    key={index}
-                    onClick={() =>
-                      setExpandedIncident(
-                        expandedIncident === index ? null : index
-                      )
-                    }
-                  >
-
-                  <div className="incident-header">
-
-                    <strong>{incident.user}</strong>
-
-                    <span className={`severity ${severityClass}`}>
-                      {incident.severity}
-                    </span>
-
-                  </div>
-
-                  {expandedIncident === index && (
-                    <div className="incident-info">
-
-                      <div>
-                        <div className="info-label">
-                          IP Address
-                        </div>
-
-                        <div className="info-value">
-                          {incident.ip}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="info-label">
-                          Risk Score
-                        </div>
-
-                        <div className="info-value">
-                          {incident.risk_score}/100
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="info-label">
-                          Threat Count
-                        </div>
-
-                        <div className="info-value">
-                          {incident.threats.length}
-                        </div>
-                      </div>
-
-                    </div>
-                  )}
-
-                  {expandedIncident === index && (
-                    <div className="threats">
-
-                      <div className="threats-title">
-                        Detected Threats
-                      </div>
-
-                      <div className="threat-list">
-
-                        {incident.threats.map(
-                          (threat, threatIndex) => (
-                            <span
-                              className="threat"
-                              key={threatIndex}
-                            >
-                              {threat}
-                            </span>
-                          )
-                        )}
-
-                      </div>
-
-                    </div>
-                  )}
-
-                  {expandedIncident === index && (
-                    <div className="details">
-
-                      <div className="details-title">
-                        Incident Details
-                      </div>
-
-                      <div className="details-list">
-
-                        {incident.details.map((detail, detailIndex) => (
-
-                          <div className="detail-item" key={detailIndex}>
-
-                            <strong>{detail.type}</strong>
-
-                            {detail.attempts !== undefined && (
-                              <p>Failed attempts: {detail.attempts}</p>
-                            )}
-
-                            {detail.failed_attempts !== undefined && (
-                              <p>Failed attempts: {detail.failed_attempts}</p>
-                            )}
-
-                            {detail.users_targeted !== undefined && (
-                              <p>Users targeted: {detail.users_targeted}</p>
-                            )}
-
-                            {detail.timestamp !== undefined && (
-                              <p>Timestamp: {detail.timestamp}</p>
-                            )}
-
-                            {detail.events !== undefined && (
-                              <p>Total events: {detail.events}</p>
-                            )}
-
-                            {detail.failed_logins !== undefined && (
-                              <p>Failed logins: {detail.failed_logins}</p>
-                            )}
-
-                            {detail.successful_logins !== undefined && (
-                              <p>Successful logins: {detail.successful_logins}</p>
-                            )}
-
-                            {detail.privilege_changes !== undefined && (
-                              <p>Privilege changes: {detail.privilege_changes}</p>
-                            )}
-
-                            {detail.password_changes !== undefined && (
-                              <p>Password changes: {detail.password_changes}</p>
-                            )}
-
-                            {detail.explanation !== undefined && (
-                              <div className="detail-explanation">
-                                <div className="explanation-label">
-                                  AI Explanation
-                                </div>
-
-                                <p>{detail.explanation}</p>
-                              </div>
-                            )}
-
-                          </div>
-
-                        ))}
-
-                      </div>
-
-                    </div>
-                  )}
-                  
-                  {/* Recommended Actions */}
-
-                  <div className="recommended-actions">
-
-                    <div className="recommended-actions-title">
-                      Recommended Actions
-                    </div>
-
-                    <ul>
-                      {incident.recommended_actions.map(
-                        (action, actionIndex) => (
-                          <li key={actionIndex}>
-                            {action}
-                          </li>
-                        )
-                      )}
-                    </ul>
-
-                  </div>
-
-
-                </div>
-              );
-            })}
-
+          <div className="incident-count">
+            Showing {filteredIncidents.length} of {incidents.length} incidents
           </div>
 
+          <div className="incidents">
+            {filteredIncidents.length === 0 ? (
+              <p className="no-incidents">
+                No incidents match the selected filters.
+              </p>
+            ) : (
+              filteredIncidents.map((incident, index) => {
+
+                // Επιλέγουμε CSS class ανάλογα με το severity.
+                const severityClass =
+                  incident.severity === "CRITICAL"
+                    ? "severity-critical"
+                    : incident.severity === "HIGH"
+                    ? "severity-high"
+                    : incident.severity === "MEDIUM"
+                    ? "severity-medium"
+                    : "severity-low";
+
+                return (  
+                    <div
+                      className="incident"
+                      key={index}
+                      onClick={() =>
+                        setExpandedIncident(
+                          expandedIncident === index ? null : index
+                        )
+                      }
+                    >
+
+                    <div className="incident-header">
+
+                      <strong>{incident.user}</strong>
+
+                      <span className={`severity ${severityClass}`}>
+                        {incident.severity}
+                      </span>
+
+                    </div>
+
+                    {/* Εμφανίζουμε επιπλέον πληροφορίες όταν ανοίγει το incident. */}
+                    {expandedIncident === index && (
+                      <div className="incident-info">
+
+                        <div>
+                          <div className="info-label">
+                            IP Address
+                          </div>
+
+                          <div className="info-value">
+                            {incident.ip}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="info-label">
+                            Risk Score
+                          </div>
+
+                          <div className="info-value">
+                            {incident.risk_score}/100
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="info-label">
+                            Threat Count
+                          </div>
+
+                          <div className="info-value">
+                            {incident.threats.length}
+                          </div>
+                        </div>
+
+                      </div>
+                    )}
+
+                    {/* Εμφανίζουμε τις απειλές του incident. */}
+                    {expandedIncident === index && (
+                      <div className="threats">
+
+                        <div className="threats-title">
+                          Detected Threats
+                        </div>
+
+                        <div className="threat-list">
+
+                          {incident.threats.map(
+                            (threat, threatIndex) => (
+                              <span
+                                className="threat"
+                                key={threatIndex}
+                              >
+                                {threat}
+                              </span>
+                            )
+                          )}
+
+                        </div>
+
+                      </div>
+                    )}
+
+                    {expandedIncident === index && (
+                      <div className="details">
+
+                        <div className="details-title">
+                          Incident Details
+                        </div>
+
+                        <div className="details-list">
+
+                          {incident.details.map((detail, detailIndex) => (
+
+                            <div className="detail-item" key={detailIndex}>
+
+                              <strong>{detail.type}</strong>
+
+                              {detail.attempts !== undefined && (
+                                <p>Failed attempts: {detail.attempts}</p>
+                              )}
+
+                              {detail.failed_attempts !== undefined && (
+                                <p>Failed attempts: {detail.failed_attempts}</p>
+                              )}
+
+                              {detail.users_targeted !== undefined && (
+                                <p>Users targeted: {detail.users_targeted}</p>
+                              )}
+
+                              {detail.timestamp !== undefined && (
+                                <p>Timestamp: {detail.timestamp}</p>
+                              )}
+
+                              {detail.events !== undefined && (
+                                <p>Total events: {detail.events}</p>
+                              )}
+
+                              {detail.failed_logins !== undefined && (
+                                <p>Failed logins: {detail.failed_logins}</p>
+                              )}
+
+                              {detail.successful_logins !== undefined && (
+                                <p>Successful logins: {detail.successful_logins}</p>
+                              )}
+
+                              {detail.privilege_changes !== undefined && (
+                                <p>Privilege changes: {detail.privilege_changes}</p>
+                              )}
+
+                              {detail.password_changes !== undefined && (
+                                <p>Password changes: {detail.password_changes}</p>
+                              )}
+
+                              {detail.explanation !== undefined && (
+                                <div className="detail-explanation">
+                                  <div className="explanation-label">
+                                    AI Explanation
+                                  </div>
+
+                                  <p>{detail.explanation}</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Εμφανίζουμε προτεινόμενες ενέργειες αντιμετώπισης. */}
+                    <div className="recommended-actions">
+                      <div className="recommended-actions-title">
+                        Recommended Actions
+                      </div>
+                      <ul>
+                        {incident.recommended_actions.map(
+                          (action, actionIndex) => (
+                            <li key={actionIndex}>
+                              {action}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })
+              
+            )}
+          </div>
         </section>
-
       </main>
-
     </div>
   );
 }
