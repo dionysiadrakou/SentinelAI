@@ -175,6 +175,8 @@ def save_uploaded_logs_to_database(logs):
         raise RuntimeError("DATABASE_URL is not configured")
 
     with psycopg.connect(database_url) as conn:
+        conn.execute("TRUNCATE TABLE uploaded_security_logs")
+
         for log in logs:
             conn.execute(
                 """
