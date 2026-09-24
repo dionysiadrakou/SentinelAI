@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+psycopg[binary]
+python-dotenv
+scikit-learn
+python-multipart
+PyJWT
+pwdlib[argon2]
