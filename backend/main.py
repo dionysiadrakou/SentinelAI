@@ -4,7 +4,7 @@ import csv
 import psycopg
 from dotenv import load_dotenv
 from datetime import datetime
-from analyzer import analyze_logs, load_logs
+from backend.analyzer import analyze_logs, load_logs
 from collections import Counter
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -15,10 +15,6 @@ from fastapi import Depends
 from backend.auth import (TEST_USERNAME, TEST_PASSWORD_HASH, verify_password, create_access_token, get_current_user)
 
 load_dotenv()
-
-# Προσθήκη του βασικού φακέλου του project στο Python path,
-# ώστε το backend να μπορεί να κάνει import το analyzer.py.
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 app = FastAPI()
 
