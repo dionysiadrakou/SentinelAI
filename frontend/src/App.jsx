@@ -5,7 +5,7 @@ function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [severityFilter, setSeverityFilter] = useState("ALL");
-  const [token, setToken] = useState(localStorage.getItem("sentinelai_token"));
+  const [token, setToken] = useState(sessionStorage.getItem("sentinelai_token"));
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [threatFilter, setThreatFilter] = useState("ALL");
@@ -48,7 +48,7 @@ function App() {
       // Αποθηκεύουμε το JWT token που μας επέστρεψε το backend.
       setToken(result.access_token);
 
-      localStorage.setItem(
+      sessionStorage.setItem(
         "sentinelai_token",
         result.access_token
       );
@@ -67,7 +67,7 @@ function App() {
   //-------- Λειτουργία LOGOUT ---------
   const handleLogout = () => {
     // Διαγράφουμε το JWT token από το Local Storage.
-    localStorage.removeItem("sentinelai_token");
+      sessionStorage.removeItem("sentinelai_token");
 
     // Αφαιρούμε το token και από το React state.
     setToken(null);
