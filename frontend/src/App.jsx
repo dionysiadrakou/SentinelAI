@@ -12,6 +12,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedIncident, setExpandedIncident] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [visibleSections, setVisibleSections] = useState({});
 
   //-------- Λειτουργία LOGIN ---------
   const handleLogin = async () => {
@@ -141,7 +142,7 @@ function App() {
 
 
   // Φορτώνουμε τα δεδομένα του dashboard από το backend.
- useEffect(() => {
+  useEffect(() => {
     // Αν δεν υπάρχει JWT token, δεν προσπαθούμε να καλέσουμε το protected endpoint.
     if (!token) {
       return;
@@ -182,6 +183,35 @@ function App() {
       });
 
   }, [token]);
+
+  useEffect(() => {
+    const elements = document.querySelectorAll(".reveal");
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          } else {
+            entry.target.classList.remove("visible");
+          }
+        });
+      },
+      {
+        threshold: 0.15
+      }
+    );
+
+    elements.forEach((element) => {
+      observer.observe(element);
+    });
+
+    return () => {
+      elements.forEach((element) => {
+        observer.unobserve(element);
+      });
+    };
+  }, [data]);
 
   if (error) {
     return (
@@ -321,60 +351,153 @@ function App() {
   return (
     <div className="app">
 
-      <button onClick={handleLogout}>
-        Logout
-      </button>
+      <header className="top-header">
+        <div className="brand">
+          <div className="brand-text">
+            <h1>SentinelAI</h1>
+            <p>AI-Powered Security Log Analyzer</p>
+          </div>
+        </div>
+        <button
+          className="logout-button"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
+      </header>
 
       <div className="upload-section">
-        <h2>Upload Security Logs</h2>
-        <input
-          type="file"
-          accept=".csv"
-          onChange={(event) => setSelectedFile(event.target.files[0])}
-        />
-        <button onClick={handleUpload}>
-          Upload & Analyze
-        </button>
-      </div>
+        <div className="upload-header">
+          <div>
+            <h2>Upload Security Logs</h2>
+            <p>
+              Upload a CSV file containing security logs to analyze potential threats
+              and security incidents.
+            </p>
+          </div>
+        </div>
 
-      <header className="header">
-        <h1>SentinelAI</h1>
-        <p>AI-Powered Security Log Analyzer</p>
-      </header>
+        <div className="upload-content">
+          <label className="file-upload">
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(event) => setSelectedFile(event.target.files[0])}
+            />
+
+            <div className="upload-icon">
+              ↑
+            </div>
+
+            <div className="upload-text">
+              <strong>
+                {selectedFile
+                  ? selectedFile.name
+                  : "Choose a security log file"}
+              </strong>
+
+              <span>
+                {selectedFile
+                  ? "File selected successfully"
+                  : "CSV files only"}
+              </span>
+            </div>
+
+            <span className="browse-button">
+              Browse
+            </span>
+          </label>
+
+          <button
+            className="analyze-button"
+            onClick={handleUpload}
+          >
+            Upload & Analyze
+          </button>
+        </div>
+      </div>
 
       <main className="main">
 
         <section className="stats-grid">
 
-          <div className="stat-card">
-            <h3>Total Events</h3>
-            <p>{data.total_events}</p>
+          <div className="stat-card stat-events">
+            <div className="stat-top">
+              <span className="stat-label">Total Events</span>
+            </div>
+
+            <div className="stat-value">
+              {data.total_events}
+            </div>
+
+            <div className="stat-description">
+              Security events analyzed
+            </div>
           </div>
 
-          <div className="stat-card">
-            <h3>Total Incidents</h3>
-            <p>{data.total_incidents}</p>
+
+          <div className="stat-card stat-incidents">
+            <div className="stat-top">
+              <span className="stat-label">Total Incidents</span>
+            </div>
+
+            <div className="stat-value">
+              {data.total_incidents}
+            </div>
+
+            <div className="stat-description">
+              Detected security incidents
+            </div>
           </div>
 
-          <div className="stat-card">
-            <h3>Critical Alerts</h3>
-            <p>{criticalCount}</p>
+
+          <div className="stat-card stat-critical">
+            <div className="stat-top">
+              <span className="stat-label">Critical Alerts</span>
+            </div>
+
+            <div className="stat-value">
+              {criticalCount}
+            </div>
+
+            <div className="stat-description">
+              Critical severity incidents
+            </div>
           </div>
 
-          <div className="stat-card">
-            <h3>High Alerts</h3>
-            <p>{highCount}</p>
+
+          <div className="stat-card stat-high">
+            <div className="stat-top">
+              <span className="stat-label">High Alerts</span>
+            </div>
+
+            <div className="stat-value">
+              {highCount}
+            </div>
+
+            <div className="stat-description">
+              High severity incidents
+            </div>
           </div>
 
-          <div className="stat-card">
-            <h3>Suspicious IPs</h3>
-            <p>{data.suspicious_ips}</p>
+
+          <div className="stat-card stat-ips">
+            <div className="stat-top">
+              <span className="stat-label">Suspicious IPs</span>
+            </div>
+
+            <div className="stat-value">
+              {data.suspicious_ips}
+            </div>
+
+            <div className="stat-description">
+              Potentially malicious sources
+            </div>
           </div>
 
         </section>
 
-
-        <section className="section">
+        <section className="section reveal">
 
           <h2>Risk Overview</h2>
 
@@ -400,7 +523,7 @@ function App() {
         </section>
 
 
-        <section className="section">
+        <section className="section reveal">
 
           <h2>Events Over Time</h2>
 
@@ -510,7 +633,7 @@ function App() {
         </section>
 
 
-        <section className="section">
+        <section className="section reveal">
 
           <h2>Recent Security Incidents</h2>
 
@@ -578,11 +701,11 @@ function App() {
 
                 return (  
                     <div
-                      className="incident"
+                      className={`incident ${severityClass}`}
                       key={index}
                       onClick={() =>
                         setExpandedIncident(
-                          expandedIncident === index ? null : index
+                          expandedIncident === incident.user ? null : incident.user
                         )
                       }
                     >
@@ -598,69 +721,63 @@ function App() {
                     </div>
 
                     {/* Εμφανίζουμε επιπλέον πληροφορίες όταν ανοίγει το incident. */}
-                    {expandedIncident === index && (
-                      <div className="incident-info">
-
-                        <div>
-                          <div className="info-label">
-                            IP Address
-                          </div>
-
-                          <div className="info-value">
-                            {incident.ip}
-                          </div>
+                    <div className="incident-info">
+                      <div>
+                        <div className="info-label">
+                          IP Address
                         </div>
 
-                        <div>
-                          <div className="info-label">
-                            Risk Score
-                          </div>
-
-                          <div className="info-value">
-                            {incident.risk_score}/100
-                          </div>
+                        <div className="info-value">
+                          {incident.ip}
                         </div>
-
-                        <div>
-                          <div className="info-label">
-                            Threat Count
-                          </div>
-
-                          <div className="info-value">
-                            {incident.threats.length}
-                          </div>
-                        </div>
-
                       </div>
-                    )}
+
+                      <div>
+                        <div className="info-label">
+                          Risk Score
+                        </div>
+
+                        <div className="info-value">
+                          {incident.risk_score}/100
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="info-label">
+                          Threat Count</div>
+
+                        <div className="info-value">
+                          {incident.threats.length}
+                        </div>
+                      </div>
+
+                    </div>
+                  
 
                     {/* Εμφανίζουμε τις απειλές του incident. */}
-                    {expandedIncident === index && (
-                      <div className="threats">
+                    <div className="threats">
+                      <div className="threats-title">
+                        Detected Threats
+                      </div>
+                      <div className="threat-list">
 
-                        <div className="threats-title">
-                          Detected Threats
-                        </div>
-
-                        <div className="threat-list">
-
-                          {incident.threats.map(
-                            (threat, threatIndex) => (
-                              <span
-                                className="threat"
-                                key={threatIndex}
-                              >
-                                {threat}
-                              </span>
-                            )
-                          )}
-
-                        </div>
+                        {incident.threats.map(
+                          (threat, threatIndex) => (
+                            <span
+                              className="threat"
+                               key={threatIndex}
+                             >
+                               {threat}
+                             </span>
+                          )
+                         )}
 
                       </div>
-                    )}
 
-                    {expandedIncident === index && (
+                    </div>
+                    
+
+                    {expandedIncident === incident.user && (
                       <div className="details">
 
                         <div className="details-title">
@@ -727,20 +844,22 @@ function App() {
                     )}
                     
                     {/* Εμφανίζουμε προτεινόμενες ενέργειες αντιμετώπισης. */}
-                    <div className="recommended-actions">
-                      <div className="recommended-actions-title">
-                        Recommended Actions
+                    {expandedIncident === incident.user && (
+                      <div className="recommended-actions">
+                        <div className="recommended-actions-title">
+                          Recommended Actions
+                        </div>
+                        <ul>
+                          {incident.recommended_actions.map(
+                            (action, actionIndex) => (
+                              <li key={actionIndex}>
+                                {action}
+                              </li>
+                            )
+                          )}
+                        </ul>
                       </div>
-                      <ul>
-                        {incident.recommended_actions.map(
-                          (action, actionIndex) => (
-                            <li key={actionIndex}>
-                              {action}
-                            </li>
-                          )
-                        )}
-                      </ul>
-                    </div>
+                    )}  
                   </div>
                 );
               })
