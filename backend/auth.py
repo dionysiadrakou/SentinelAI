@@ -23,7 +23,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
 # Πόσο χρόνο παραμένει έγκυρο το JWT token.
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 8 * 60
 
 
 # ========================================================

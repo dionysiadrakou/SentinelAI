@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
+import "./Login.css";
 
 function App() {
   const [data, setData] = useState(null);
@@ -13,6 +14,8 @@ function App() {
   const [expandedIncident, setExpandedIncident] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [visibleSections, setVisibleSections] = useState({});
+  const inactivityTimer = useRef(null);
+  const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
 
   //-------- Λειτουργία LOGIN ---------
   const handleLogin = async () => {
@@ -76,6 +79,45 @@ function App() {
     // Καθαρίζουμε τα δεδομένα του dashboard.
     setData(null);
   };
+
+  //-------- AUTO LOGOUT AFTER INACTIVITY ---------
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const resetInactivityTimer = () => {
+      clearTimeout(inactivityTimer.current);
+
+      inactivityTimer.current = setTimeout(() => {
+        handleLogout();
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    const activityEvents = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click"
+    ];
+
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, resetInactivityTimer);
+    });
+
+    resetInactivityTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer.current);
+
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, resetInactivityTimer);
+      });
+    };
+  }, [token]);
 
 
     //-------- Λειτουργία UPLOAD ---------
@@ -159,8 +201,15 @@ function App() {
     )
       .then((response) => {
 
-        // Αν το token είναι άκυρο ή έχει λήξει,
-        // το backend επιστρέφει 401.
+        // Αν το JWT έχει λήξει ή δεν είναι έγκυρο,
+        // επιστρέφουμε τον χρήστη στη σελίδα Login.
+        if (response.status === 401) {
+          handleLogout();
+          return null;
+        }
+
+        // Για οποιοδήποτε άλλο σφάλμα του backend,
+        // εμφανίζουμε μήνυμα σύνδεσης.
         if (!response.ok) {
           throw new Error("Failed to load dashboard data");
         }
@@ -169,8 +218,10 @@ function App() {
       })
 
       .then((result) => {
-        // Αποθηκεύουμε τα δεδομένα του dashboard.
-        setData(result);
+        if (result) {
+          // Αποθηκεύουμε τα δεδομένα του dashboard.
+          setData(result);
+        }
       })
 
       .catch(() => {
@@ -242,16 +293,17 @@ function App() {
           onChange={(event) => setPassword(event.target.value)}
         />
 
-        <button onClick={handleLogin}>
-          Login
-        </button>
+        <button onClick={handleLogin}>Login</button>
+        <p className="login-security-note">
+          Secure access to your SentinelAI dashboard
+        </p>
 
       </div>
     );
   }
 
   if (!data) {
-    return <div>Loading...</div>;
+    return <div className="loading-screen">Loading...</div>;
   }
 
   const incidents = data.incidents;
@@ -348,6 +400,8 @@ function App() {
     .map((point) => `${point.x},${point.y}`)
     .join(" ");
 
+  console.log("expandedIncident:", expandedIncident);
+  
   return (
     <div className="app">
 
@@ -391,21 +445,13 @@ function App() {
 
             <div className="upload-text">
               <strong>
-                {selectedFile
-                  ? selectedFile.name
-                  : "Choose a security log file"}
+                {selectedFile ? selectedFile.name : "Choose a security log file"}
               </strong>
-
               <span>
-                {selectedFile
-                  ? "File selected successfully"
-                  : "CSV files only"}
+                {selectedFile ? "File selected successfully" : "CSV files only"}
               </span>
+              <span className="browse-button">Browse</span>
             </div>
-
-            <span className="browse-button">
-              Browse
-            </span>
           </label>
 
           <button
@@ -775,92 +821,7 @@ function App() {
                       </div>
 
                     </div>
-                    
-
-                    {expandedIncident === incident.user && (
-                      <div className="details">
-
-                        <div className="details-title">
-                          Incident Details
-                        </div>
-
-                        <div className="details-list">
-
-                          {incident.details.map((detail, detailIndex) => (
-
-                            <div className="detail-item" key={detailIndex}>
-
-                              <strong>{detail.type}</strong>
-
-                              {detail.attempts !== undefined && (
-                                <p>Failed attempts: {detail.attempts}</p>
-                              )}
-
-                              {detail.failed_attempts !== undefined && (
-                                <p>Failed attempts: {detail.failed_attempts}</p>
-                              )}
-
-                              {detail.users_targeted !== undefined && (
-                                <p>Users targeted: {detail.users_targeted}</p>
-                              )}
-
-                              {detail.timestamp !== undefined && (
-                                <p>Timestamp: {detail.timestamp}</p>
-                              )}
-
-                              {detail.events !== undefined && (
-                                <p>Total events: {detail.events}</p>
-                              )}
-
-                              {detail.failed_logins !== undefined && (
-                                <p>Failed logins: {detail.failed_logins}</p>
-                              )}
-
-                              {detail.successful_logins !== undefined && (
-                                <p>Successful logins: {detail.successful_logins}</p>
-                              )}
-
-                              {detail.privilege_changes !== undefined && (
-                                <p>Privilege changes: {detail.privilege_changes}</p>
-                              )}
-
-                              {detail.password_changes !== undefined && (
-                                <p>Password changes: {detail.password_changes}</p>
-                              )}
-
-                              {detail.explanation !== undefined && (
-                                <div className="detail-explanation">
-                                  <div className="explanation-label">
-                                    AI Explanation
-                                  </div>
-
-                                  <p>{detail.explanation}</p>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Εμφανίζουμε προτεινόμενες ενέργειες αντιμετώπισης. */}
-                    {expandedIncident === incident.user && (
-                      <div className="recommended-actions">
-                        <div className="recommended-actions-title">
-                          Recommended Actions
-                        </div>
-                        <ul>
-                          {incident.recommended_actions.map(
-                            (action, actionIndex) => (
-                              <li key={actionIndex}>
-                                {action}
-                              </li>
-                            )
-                          )}
-                        </ul>
-                      </div>
-                    )}  
-                  </div>
+                  </div>              
                 );
               })
               
@@ -868,6 +829,189 @@ function App() {
           </div>
         </section>
       </main>
+
+
+      {expandedIncident && (() => {
+        const selectedIncident = incidents.find(
+          (incident) => incident.user === expandedIncident
+        );
+
+        if (!selectedIncident) {
+          return null;
+        }
+
+        console.log("selectedIncident:", selectedIncident);
+
+        return (
+          <div className="modal-overlay">
+            <div className="incident-modal">
+
+              <button
+                className="modal-close"
+                onClick={() => setExpandedIncident(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+
+              <div className="modal-header">
+                <div>
+                  <h2>{selectedIncident.user}</h2>
+                  <span
+                    className={`severity severity-${selectedIncident.severity.toLowerCase()}`}
+                  >
+                    {selectedIncident.severity}
+                  </span>
+                </div>
+              </div>
+
+              <div className="modal-info">
+                <div>
+                  <div className="info-label">IP Address</div>
+                  <div className="info-value">
+                    {selectedIncident.ip}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="info-label">Risk Score</div>
+                  <div className="info-value">
+                    {selectedIncident.risk_score}/100
+                  </div>
+                </div>
+
+                <div>
+                  <div className="info-label">Threat Count</div>
+                  <div className="info-value">
+                    {selectedIncident.threats.length}
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-section">
+                <div className="modal-section-title">
+                  Detected Threats
+                </div>
+
+                <div className="threat-list">
+                  {selectedIncident.threats.map(
+                    (threat, threatIndex) => (
+                      <span
+                        className="threat"
+                        key={threatIndex}
+                      >
+                        {threat}
+                      </span>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="details">
+                <div className="details-title">
+                  Incident Details
+                </div>
+
+                <div className="details-list">
+                  {selectedIncident.details.map(
+                    (detail, detailIndex) => (
+                      <div
+                        className="detail-item"
+                        key={detailIndex}
+                      >
+                        <strong>{detail.type}</strong>
+
+                        {detail.attempts !== undefined && (
+                          <p>
+                            Failed attempts: {detail.attempts}
+                          </p>
+                        )}
+
+                        {detail.failed_attempts !== undefined && (
+                          <p>
+                            Failed attempts: {detail.failed_attempts}
+                          </p>
+                        )}
+
+                        {detail.users_targeted !== undefined && (
+                          <p>
+                            Users targeted: {detail.users_targeted}
+                          </p>
+                        )}
+
+                        {detail.timestamp !== undefined && (
+                          <p>
+                            Timestamp: {detail.timestamp}
+                          </p>
+                        )}
+
+                        {detail.events !== undefined && (
+                          <p>
+                            Total events: {detail.events}
+                          </p>
+                        )}
+
+                        {detail.failed_logins !== undefined && (
+                          <p>
+                            Failed logins: {detail.failed_logins}
+                          </p>
+                        )}
+
+                        {detail.successful_logins !== undefined && (
+                          <p>
+                            Successful logins: {detail.successful_logins}
+                          </p>
+                        )}
+
+                        {detail.privilege_changes !== undefined && (
+                          <p>
+                            Privilege changes: {detail.privilege_changes}
+                          </p>
+                        )}
+
+                        {detail.password_changes !== undefined && (
+                          <p>
+                            Password changes: {detail.password_changes}
+                          </p>
+                        )}
+
+                        {detail.explanation !== undefined && (
+                          <div className="detail-explanation">
+                            <div className="explanation-label">
+                              AI Explanation
+                            </div>
+
+                            <p>
+                              {detail.explanation}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="recommended-actions">
+                <div className="recommended-actions-title">
+                  Recommended Actions
+                </div>
+
+                <ul>
+                  {selectedIncident.recommended_actions.map(
+                    (action, actionIndex) => (
+                      <li key={actionIndex}>
+                        {action}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
