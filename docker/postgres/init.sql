@@ -15,3 +15,11 @@ CREATE TABLE uploaded_security_logs (
     event VARCHAR(100) NOT NULL,
     status VARCHAR(50) NOT NULL
 );
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

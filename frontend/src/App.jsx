@@ -14,6 +14,9 @@ function App() {
   const [expandedIncident, setExpandedIncident] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [visibleSections, setVisibleSections] = useState({});
+  const [showRegister, setShowRegister] = useState(false);
+  const [email, setEmail] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const inactivityTimer = useRef(null);
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
 
@@ -67,6 +70,49 @@ function App() {
     }
   };
 
+  //-------- Λειτουργία REGISTER ---------
+  const handleRegister = async () => {
+    if (password !== confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/register",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            username: username,
+            email: email,
+            password: password
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.detail || "Registration failed"
+        );
+      }
+
+      alert("Registration successful. You can now login.");
+
+      setShowRegister(false);
+      setPassword("");
+      setConfirmPassword("");
+
+    } catch (error) {
+      alert("Registration failed: " + error.message);
+    }
+  };
 
   //-------- Λειτουργία LOGOUT ---------
   const handleLogout = () => {
@@ -267,7 +313,7 @@ function App() {
   if (error) {
     return (
       <div className="error-page">
-        <h2>Unable to connect to SentinelAI backend</h2>
+   i     <h2>Unable to connect to SentinelAI backend</h2>
         <p>{error}</p>
       </div>
     );
@@ -277,26 +323,98 @@ function App() {
     return (
       <div className="login-section">
 
-        <h2>SentinelAI Login</h2>
+        <div
+          key={showRegister ? "register" : "login"}
+          className="auth-form"
+        >
 
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-        />
+          {showRegister ? (
+            <>
+              <h2>SentinelAI Register</h2>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
+              <input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+              />
 
-        <button onClick={handleLogin}>Login</button>
-        <p className="login-security-note">
-          Secure access to your SentinelAI dashboard
-        </p>
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+
+              <input
+                type="password"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+              />
+
+              <button onClick={handleRegister}>Register</button>
+
+              <p className="login-security-note auth-switch">
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  className="auth-link"
+                  onClick={() => setShowRegister(false)}
+                >
+                  Login
+                </button>
+              </p>
+
+              <p className="login-security-note">
+                Secure access to your SentinelAI dashboard
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>SentinelAI Login</h2>
+
+              <input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+              />
+
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+
+              <button onClick={handleLogin}>Login</button>
+
+              <p className="login-security-note auth-switch">
+                Don't have an account?{" "}
+                <button
+                  type="button"
+                  className="auth-link"
+                  onClick={() => setShowRegister(true)}
+                >
+                  Register
+                </button>
+              </p>
+
+              <p className="login-security-note">
+                Secure access to your SentinelAI dashboard
+              </p>
+            </>
+          )}
+
+        </div>
 
       </div>
     );

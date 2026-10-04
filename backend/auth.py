@@ -18,12 +18,15 @@ load_dotenv()
 # και δεν αποθηκεύεται μέσα στον κώδικα.
 SECRET_KEY = os.getenv("SECRET_KEY")
 
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is not configured")
+
 # Ο αλγόριθμος που χρησιμοποιείται
 # για την υπογραφή του JWT.
 ALGORITHM = "HS256"
 
 # Πόσο χρόνο παραμένει έγκυρο το JWT token.
-ACCESS_TOKEN_EXPIRE_MINUTES = 8 * 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
 # ========================================================
