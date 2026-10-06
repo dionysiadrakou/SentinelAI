@@ -116,10 +116,13 @@ function App() {
 
   //-------- Λειτουργία LOGOUT ---------
   const handleLogout = () => {
-    // Διαγράφουμε το JWT token από το Local Storage.
-      sessionStorage.removeItem("sentinelai_token");
+    // Διαγράφουμε το JWT token.
+    sessionStorage.removeItem("sentinelai_token");
 
-    // Αφαιρούμε το token και από το React state.
+    // Διαγράφουμε και το προσωρινό uploaded dashboard state.
+    sessionStorage.removeItem("sentinelai_uploaded_data");
+
+    // Αφαιρούμε το token από το React state.
     setToken(null);
 
     // Καθαρίζουμε τα δεδομένα του dashboard.
@@ -203,15 +206,19 @@ function App() {
         );
       }
 
-      // Ενημερώνουμε τα δεδομένα του dashboard.
-      setData((previousData) => ({
-        ...previousData,
+      const uploadedData = {
         total_events: result.total_events,
         total_incidents: result.total_incidents,
         suspicious_ips: result.suspicious_ips,
-        events_over_time: result.events_over_time,
-        incidents: result.incidents
-      }));
+        events_over_time: result.events_over_time,          incidents: result.incidents
+      };
+
+      setData(uploadedData);
+
+      sessionStorage.setItem(
+        "sentinelai_uploaded_data",
+        JSON.stringify(uploadedData)
+      );
 
       alert(result.message);
 
@@ -231,31 +238,51 @@ function App() {
 
   // Φορτώνουμε τα δεδομένα του dashboard από το backend.
   useEffect(() => {
-    // Αν δεν υπάρχει JWT token, δεν προσπαθούμε να καλέσουμε το protected endpoint.
+    // Αν δεν υπάρχει JWT token,
+    // δεν προσπαθούμε να καλέσουμε protected endpoint.
     if (!token) {
       return;
     }
 
+    // Ελέγχουμε αν υπάρχει uploaded dashboard state
+    // από την τρέχουσα session.
+    const savedUploadedData = sessionStorage.getItem(
+      "sentinelai_uploaded_data"
+    );
+
+    if (savedUploadedData) {
+      try {
+        const parsedData = JSON.parse(savedUploadedData);
+
+        // Επαναφέρουμε το τελευταίο uploaded αποτέλεσμα
+        // αντί να φορτώσουμε ξανά τα default logs.
+        setData(parsedData);
+
+        return;
+      } catch {
+        // Αν το stored data είναι corrupted,
+        // το διαγράφουμε και συνεχίζουμε με το default dataset.
+        sessionStorage.removeItem("sentinelai_uploaded_data");
+      }
+    }
+
+    // Αν δεν υπάρχει uploaded state,
+    // φορτώνουμε τα default security logs από το backend.
     fetch(
       "http://127.0.0.1:8000/analyze",
       {
         headers: {
-          // Στέλνουμε το JWT token στο Authorization header.
           Authorization: `Bearer ${token}`
         }
       }
     )
       .then((response) => {
 
-        // Αν το JWT έχει λήξει ή δεν είναι έγκυρο,
-        // επιστρέφουμε τον χρήστη στη σελίδα Login.
         if (response.status === 401) {
           handleLogout();
           return null;
         }
 
-        // Για οποιοδήποτε άλλο σφάλμα του backend,
-        // εμφανίζουμε μήνυμα σύνδεσης.
         if (!response.ok) {
           throw new Error("Failed to load dashboard data");
         }
@@ -265,15 +292,11 @@ function App() {
 
       .then((result) => {
         if (result) {
-          // Αποθηκεύουμε τα δεδομένα του dashboard.
           setData(result);
         }
       })
 
       .catch(() => {
-
-        // Αν το frontend δεν μπορεί να επικοινωνήσει με το backend,
-        // εμφανίζουμε μήνυμα σφάλματος.
         setError(
           "Unable to connect to the SentinelAI server. Please make sure the backend is running."
         );
@@ -473,20 +496,16 @@ function App() {
 
 
   // Παίρνουμε τα δεδομένα για το γράφημα.
-  const chartData = data.events_over_time;
-
-  // Βρίσκουμε τη μέγιστη τιμή του γραφήματος.
-  const maxCount = Math.max(
-    ...chartData.map((item) => item.count)
-  );
+  const chartData = data.events_over_time || [];
 
   // Διαστάσεις και περιθώρια του γραφήματος.
   const chartWidth = 900;
   const chartHeight = 280;
-  const paddingLeft = 50;
-  const paddingRight = 20;
-  const paddingTop = 20;
-  const paddingBottom = 40;
+
+  const paddingLeft = 70;
+  const paddingRight = 50;
+  const paddingTop = 30;
+  const paddingBottom = 55;
 
   // Υπολογίζουμε τον διαθέσιμο χώρο του γραφήματος.
   const usableWidth =
@@ -495,16 +514,28 @@ function App() {
   const usableHeight =
     chartHeight - paddingTop - paddingBottom;
 
+  // Βρίσκουμε τη μέγιστη τιμή του γραφήματος.
+  // Χρησιμοποιούμε τουλάχιστον 1 ώστε να μην υπάρχει
+  // division by zero όταν όλες οι τιμές είναι 0.
+  const maxCount = Math.max(
+    ...chartData.map((item) => item.count),
+    0
+  );
+
+  const chartScaleMax = Math.max(maxCount, 1);
+
   // Μετατρέπουμε τα δεδομένα σε σημεία του γραφήματος.
   const points = chartData.map((item, index) => {
     const x =
-      paddingLeft +
-      (index / (chartData.length - 1)) * usableWidth;
+      chartData.length === 1
+        ? paddingLeft + usableWidth / 2
+        : paddingLeft +
+          (index / (chartData.length - 1)) * usableWidth;
 
     const y =
       paddingTop +
       usableHeight -
-      (item.count / maxCount) * usableHeight;
+      (item.count / chartScaleMax) * usableHeight;
 
     return {
       ...item,
@@ -697,7 +728,7 @@ function App() {
             <svg
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               className="events-chart"
-              preserveAspectRatio="none"
+              preserveAspectRatio="xMidYMid meet"
             >
 
               {/* Οριζόντιες γραμμές του grid. */}
@@ -728,24 +759,27 @@ function App() {
 
               {/* Τιμές του άξονα Y. */}
               <text
-                x="5"
+                x={paddingLeft - 12}
                 y={paddingTop + 5}
+                textAnchor="end"
                 className="chart-label"
               >
                 {maxCount}
               </text>
 
               <text
-                x="5"
+                x={paddingLeft - 12}
                 y={paddingTop + usableHeight / 2 + 5}
+                textAnchor="end"
                 className="chart-label"
               >
                 {Math.round(maxCount / 2)}
               </text>
 
               <text
-                x="15"
+                x={paddingLeft - 12}
                 y={paddingTop + usableHeight + 5}
+                textAnchor="end"
                 className="chart-label"
               >
                 0

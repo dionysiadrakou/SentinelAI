@@ -12,11 +12,11 @@ The project combines rule-based security detection with machine-learning anomaly
 
 SentinelAI detects several types of suspicious activity:
 
-- Brute Force
-- Unusual Login
-- Privilege Escalation
-- Suspicious IP Activity
-- Machine-Learning Anomalies
+* Brute Force
+* Unusual Login
+* Privilege Escalation
+* Suspicious IP Activity
+* Machine-Learning Anomalies
 
 Detected alerts are correlated into security incidents based on **user + IP address**.
 
@@ -26,17 +26,17 @@ Each incident receives a risk score from **0 to 100**.
 
 The score takes into account:
 
-- severity of detected threats
-- multiple simultaneous threats
-- dangerous threat combinations
-- machine-learning anomaly evidence
+* severity of detected threats
+* multiple simultaneous threats
+* dangerous threat combinations
+* machine-learning anomaly evidence
 
 Incidents are classified as:
 
-- **LOW**
-- **MEDIUM**
-- **HIGH**
-- **CRITICAL**
+* **LOW**
+* **MEDIUM**
+* **HIGH**
+* **CRITICAL**
 
 ### Machine Learning
 
@@ -44,14 +44,14 @@ SentinelAI uses **Isolation Forest** to identify unusual behavior across user/IP
 
 The model analyzes features including:
 
-- total events
-- failed login attempts
-- successful logins
-- failed login rate
-- privilege changes
-- password changes
-- login activity during unusual hours
-- number of unique IP addresses
+* total events
+* failed login attempts
+* successful logins
+* failed login rate
+* privilege changes
+* password changes
+* login activity during unusual hours
+* number of unique IP addresses
 
 Machine-learning anomalies are used as **supporting evidence** alongside rule-based detections rather than replacing them.
 
@@ -59,61 +59,61 @@ Machine-learning anomalies are used as **supporting evidence** alongside rule-ba
 
 The application includes:
 
-- User registration
-- User login
-- Argon2 password hashing
-- JWT authentication
-- Protected API endpoints
-- JWT expiration
-- Automatic logout after 30 minutes of inactivity
-- Login rate limiting
+* User registration
+* User login
+* Argon2 password hashing
+* JWT authentication
+* Protected API endpoints
+* JWT expiration
+* Automatic logout after 30 minutes of inactivity
+* Login rate limiting
 
 ### Security
 
 The application also includes:
 
-- Server-side input validation
-- CSV input validation
-- Parameterized PostgreSQL queries
-- XSS-safe React rendering
-- Security headers
-- Content Security Policy
-- Docker-based deployment
-- OWASP ZAP security testing
+* Server-side input validation
+* CSV input validation
+* Parameterized PostgreSQL queries
+* XSS-safe React rendering
+* Security headers
+* Content Security Policy
+* Docker-based deployment
+* OWASP ZAP security testing
 
 ## Technology Stack
 
 ### Frontend
 
-- React
-- Vite
-- JavaScript
-- CSS
-- Nginx
+* React
+* Vite
+* JavaScript
+* CSS
+* Nginx
 
 ### Backend
 
-- Python
-- FastAPI
-- Pydantic
-- PyJWT
-- pwdlib / Argon2
-- scikit-learn
+* Python
+* FastAPI
+* Pydantic
+* PyJWT
+* pwdlib / Argon2
+* scikit-learn
 
 ### Database
 
-- PostgreSQL 17
-- psycopg
+* PostgreSQL 17
+* psycopg
 
 ### Infrastructure
 
-- Docker
-- Docker Compose
-- Nginx
+* Docker
+* Docker Compose
+* Nginx
 
 ### Security Testing
 
-- OWASP ZAP
+* OWASP ZAP
 
 ## Architecture
 
@@ -173,6 +173,28 @@ Incident Correlation   Isolation Forest
         Recommended Actions
 ```
 
+## Screenshots
+
+### Authentication
+
+![SentinelAI Login](docs/login.png)
+
+### Dashboard
+
+![SentinelAI Dashboard](docs/dashboard.png)
+
+### Risk Overview & Events Over Time
+
+![Risk Overview](docs/risk-overview.png)
+
+### Security Incidents
+
+![Security Incidents](docs/security-incidents.png)
+
+### Incident Details
+
+![Incident Details](docs/incident-details.png)
+
 ## Security
 
 ### Input Validation
@@ -181,15 +203,15 @@ Server-side validation is applied to registration, login inputs, and uploaded CS
 
 CSV validation includes:
 
-- CSV file extension validation
-- 5 MB file size limit
-- required column validation
-- field count validation
-- timestamp validation
-- username validation
-- IP address validation
-- event allowlisting
-- status allowlisting
+* CSV file extension validation
+* 5 MB file size limit
+* required column validation
+* field count validation
+* timestamp validation
+* username validation
+* IP address validation
+* event allowlisting
+* status allowlisting
 
 ### SQL Injection Protection
 
@@ -207,9 +229,9 @@ Passwords are hashed with **Argon2**.
 
 JWT tokens:
 
-- are signed with a server-side secret
-- contain an expiration time
-- are rejected when invalid or expired
+* are signed with a server-side secret
+* contain an expiration time
+* are rejected when invalid or expired
 
 Login requests are rate-limited to reduce brute-force and credential-stuffing attempts.
 
@@ -217,11 +239,11 @@ Login requests are rate-limited to reduce brute-force and credential-stuffing at
 
 The Nginx frontend configuration includes:
 
-- `X-Content-Type-Options`
-- `X-Frame-Options`
-- `Referrer-Policy`
-- `Permissions-Policy`
-- `Content-Security-Policy`
+* `X-Content-Type-Options`
+* `X-Frame-Options`
+* `Referrer-Policy`
+* `Permissions-Policy`
+* `Content-Security-Policy`
 
 ## Security Testing
 
@@ -252,16 +274,16 @@ PASS: 118
 
 The API scan included checks for vulnerabilities such as:
 
-- SQL Injection
-- PostgreSQL time-based SQL Injection
-- Reflected XSS
-- Persistent XSS
-- DOM-based XSS
-- Path Traversal
-- Command Injection
-- Parameter Tampering
-- XML External Entity attacks
-- Server-Side Template Injection
+* SQL Injection
+* PostgreSQL time-based SQL Injection
+* Reflected XSS
+* Persistent XSS
+* DOM-based XSS
+* Path Traversal
+* Command Injection
+* Parameter Tampering
+* XML External Entity attacks
+* Server-Side Template Injection
 
 Manual security testing was also performed for SQL injection, XSS, authentication behavior, and login rate limiting.
 
@@ -269,9 +291,9 @@ Manual security testing was also performed for SQL injection, XSS, authenticatio
 
 The PostgreSQL container creates the `sentinelai` database and initializes three tables:
 
-- `security_logs`
-- `uploaded_security_logs`
-- `users`
+* `security_logs`
+* `uploaded_security_logs`
+* `users`
 
 The backend connects to PostgreSQL internally through:
 
@@ -284,6 +306,22 @@ For local access from the host machine, PostgreSQL is exposed on:
 ```text
 localhost:5433
 ```
+
+PostgreSQL data is stored in a persistent Docker named volume:
+
+```text
+postgres_data
+```
+
+This keeps database records such as users and uploaded security logs available after a normal:
+
+```bash
+docker compose down
+```
+
+and subsequent restart.
+
+> Do not use `docker compose down -v` unless you intentionally want to delete the PostgreSQL volume and reset the database.
 
 ## Project Structure
 
@@ -303,6 +341,13 @@ SentinelAI/
 │       ├── init.sql
 │       └── seed.py
 │
+├── docs/
+│   ├── login.png
+│   ├── dashboard.png
+│   ├── risk-overview.png
+│   ├── security-incidents.png
+│   └── incident-details.png
+│
 ├── frontend/
 │   ├── public/
 │   ├── src/
@@ -320,11 +365,14 @@ SentinelAI/
 │   ├── package-lock.json
 │   └── vite.config.js
 │
+├── scripts/
+│   ├── generate_logs.py
+│   └── failed_logins.py
+│
 ├── .dockerignore
 ├── .gitignore
 ├── docker-compose.yml
-├── failed_logins.py
-├── generate_logs.py
+├── README.md
 └── security_logs.csv
 ```
 
@@ -332,8 +380,8 @@ SentinelAI/
 
 ### Prerequisites
 
-- Docker
-- Docker Compose
+* Docker
+* Docker Compose
 
 ### 1. Clone the repository
 
@@ -363,30 +411,18 @@ docker compose up -d
 
 Docker Compose starts:
 
-- PostgreSQL
-- FastAPI backend
-- React frontend
-- database seeding service
+* PostgreSQL
+* FastAPI backend
+* React frontend
+* database seeding service
 
 ### 4. Open the application
 
-Frontend:
+Frontend: http://localhost:3000
 
-```text
-http://localhost:3000
-```
+Backend: http://localhost:8000
 
-Backend:
-
-```text
-http://localhost:8000
-```
-
-FastAPI Swagger documentation:
-
-```text
-http://localhost:8000/docs
-```
+FastAPI Swagger documentation: http://localhost:8000/docs
 
 ### 5. Stop the application
 
@@ -406,29 +442,31 @@ docker compose down
 8. Each incident receives a risk score and severity.
 9. Recommended investigation actions are displayed in the dashboard.
 
+During the active browser session, the dashboard preserves the results of the most recently uploaded CSV across page refreshes. Logging out clears the uploaded dashboard state, allowing the next login to start again from the default dataset.
+
 ## Future Improvements
 
 Possible future extensions include:
 
-- richer incident investigation workflows
-- persistent audit logging
-- improved anomaly explanations
-- additional visual analytics
-- role-based access control
-- production HTTPS deployment
-- centralized rate limiting with Redis
-- production-oriented session/token storage
+* richer incident investigation workflows
+* persistent audit logging
+* improved anomaly explanations
+* additional visual analytics
+* role-based access control
+* production HTTPS deployment
+* centralized rate limiting with Redis
+* production-oriented session/token storage
 
 ## Purpose
 
 SentinelAI was developed as a portfolio project to demonstrate practical skills in:
 
-- Full-stack development
-- Backend API development
-- PostgreSQL integration
-- Authentication and secure access control
-- Secure input handling
-- Security engineering principles
-- Machine-learning anomaly detection
-- Docker-based application architecture
-- Automated security testing
+* Full-stack development
+* Backend API development
+* PostgreSQL integration
+* Authentication and secure access control
+* Secure input handling
+* Security engineering principles
+* Machine-learning anomaly detection
+* Docker-based application architecture
+* Automated security testing
