@@ -6,6 +6,11 @@ SentinelAI is a full-stack security monitoring application that analyzes securit
 
 The project combines rule-based security detection with machine-learning anomaly detection using **Isolation Forest**, while providing authenticated access through **JWT-based authentication**.
 
+## Live Demo
+
+- **Application:** https://sentinelai-frontend-gosg.onrender.com
+- **API Documentation:** https://sentinelai-api-usc3.onrender.com/docs
+
 ## Features
 
 ### Security Log Analysis
