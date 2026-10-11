@@ -388,3 +388,63 @@ body:has(.login-section)::before {
   }
 }
 
+
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 45px;
+}
+
+.login-section .password-input-wrapper .password-toggle {
+  position: absolute;
+  z-index: 2;
+
+  top: 26px;
+  right: 12px;
+
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+
+  color: #94a3b8;
+  cursor: pointer;
+
+  transform: none;
+  transition: none;
+}
+
+.login-section .password-input-wrapper .password-toggle:hover,
+.login-section .password-input-wrapper .password-toggle:focus,
+.login-section .password-input-wrapper .password-toggle:active {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+
+  color: #94a3b8;
+  transform: none;
+}
+
+.login-section .password-input-wrapper .password-toggle svg {
+  width: 17px;
+  height: 17px;
+
+  display: block;
+  flex-shrink: 0;
+}

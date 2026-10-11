@@ -13,6 +13,7 @@ function App() {
   const [token, setToken] = useState(sessionStorage.getItem("sentinelai_token"));
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [threatFilter, setThreatFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedIncident, setExpandedIncident] = useState(null);
@@ -21,12 +22,20 @@ function App() {
   const [showRegister, setShowRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const inactivityTimer = useRef(null);
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
-
+  const [isUploading, setIsUploading] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  
 
   //-------- Λειτουργία LOGIN ---------
   const handleLogin = async () => {
+    if (isLoggingIn) return;
+
+    setIsLoggingIn(true);
+
     try {
       // Στέλνουμε το username και το password
       // στο endpoint /login του FastAPI backend.
@@ -72,26 +81,32 @@ function App() {
 
       // Εμφανίζουμε μήνυμα σε περίπτωση αποτυχίας του login.
       alert("Login failed: " + error.message);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   //-------- Λειτουργία REGISTER ---------
   const handleRegister = async () => {
+    if (isRegistering) {
+      return;
+    }
+
     if (password !== confirmPassword) {
       alert("Passwords do not match.");
       return;
     }
+
+    setIsRegistering(true);
 
     try {
       const response = await fetch(
         `${API_BASE_URL}/register`,
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json"
           },
-
           body: JSON.stringify({
             username: username,
             email: email,
@@ -116,6 +131,8 @@ function App() {
 
     } catch (error) {
       alert("Registration failed: " + error.message);
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -174,14 +191,19 @@ function App() {
   }, [token]);
 
 
-    //-------- Λειτουργία UPLOAD ---------
+  //-------- Λειτουργία UPLOAD ---------
   const handleUpload = async () => {
+    if (isUploading) {
+      return;
+    }
 
-    // Έλεγχος αν έχει επιλεχθέι αρχείο CSV πριν το upload
+    // Έλεγχος αν έχει επιλεχθεί αρχείο CSV πριν το upload.
     if (!selectedFile) {
       alert("Please select a CSV file first.");
       return;
     }
+
+    setIsUploading(true);
 
     const formData = new FormData();
     formData.append("file", selectedFile);
@@ -191,20 +213,15 @@ function App() {
         `${API_BASE_URL}/upload`,
         {
           method: "POST",
-
           headers: {
-            // Στέλνουμε το JWT token μαζί με το upload request.
             Authorization: `Bearer ${token}`
           },
-
           body: formData
         }
       );
 
-      // Παίρνουμε την απάντηση του backend σε JSON μορφή
       const result = await response.json();
 
-      // Ελέγχουμε αν το upload ηταν επιτυχές
       if (!response.ok) {
         throw new Error(
           result.detail || "Unable to upload and analyze the file."
@@ -215,7 +232,8 @@ function App() {
         total_events: result.total_events,
         total_incidents: result.total_incidents,
         suspicious_ips: result.suspicious_ips,
-        events_over_time: result.events_over_time,          incidents: result.incidents
+        events_over_time: result.events_over_time,
+        incidents: result.incidents
       };
 
       setData(uploadedData);
@@ -228,16 +246,16 @@ function App() {
       alert(result.message);
 
     } catch (error) {
-        // Ελέγχουμε αν το backend είναι διαθέσιμο.
-        if (error.message === "Failed to fetch") {
-          alert(
-            "Upload failed: Unable to connect to the SentinelAI server. Please make sure the backend is running."
-          );
-        } else {
-          // Γενικό error message
-          alert("Upload failed: " + error.message);
-        }
+      if (error.message === "Failed to fetch") {
+        alert(
+          "Upload failed: Unable to connect to the SentinelAI server. Please try again."
+        );
+      } else {
+        alert("Upload failed: " + error.message);
       }
+    } finally {
+      setIsUploading(false);
+    }
   };
 
 
@@ -374,21 +392,116 @@ function App() {
                 onChange={(event) => setEmail(event.target.value)}
               />
 
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
+              
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
 
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-              />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                      <path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5 0 8.5 4.5 9.5 7a11.8 11.8 0 0 1-2.1 3.2" />
+                      <path d="M6.2 6.2C3.9 7.7 2.7 10 2.5 12c.5 1.3 1.5 3 3.5 4.7A9.8 9.8 0 0 0 12 19c1.1 0 2.1-.2 3-.5" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
 
-              <button onClick={handleRegister}>Register</button>
+              <div className="password-input-wrapper">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide password confirmation"
+                      : "Show password confirmation"
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                      <path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5 0 8.5 4.5 9.5 7a11.8 11.8 0 0 1-2.1 3.2" />
+                      <path d="M6.2 6.2C3.9 7.7 2.7 10 2.5 12c.5 1.3 1.5 3 3.5 4.7A9.8 9.8 0 0 0 12 19c1.1 0 2.1-.2 3-.5" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+
+              <button
+                onClick={handleRegister}
+                disabled={isRegistering}
+              >
+                {isRegistering ? "Creating account..." : "Register"}
+              </button>
+
+              {isRegistering && (
+                <p className="auth-loading-message" role="status">
+                  Creating your account. Please wait...
+                </p>
+              )}
 
               <p className="login-security-note auth-switch">
                 Already have an account?{" "}
@@ -415,15 +528,66 @@ function App() {
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
               />
+              
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
 
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
+                
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                      <path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5 0 8.5 4.5 9.5 7a11.8 11.8 0 0 1-2.1 3.2" />
+                      <path d="M6.2 6.2C3.9 7.7 2.7 10 2.5 12c.5 1.3 1.5 3 3.5 4.7A9.8 9.8 0 0 0 12 19c1.1 0 2.1-.2 3-.5" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
 
-              <button onClick={handleLogin}>Login</button>
+              <button
+                onClick={handleLogin}
+                disabled={isLoggingIn}
+              >
+                {isLoggingIn ? "Logging in..." : "Login"}
+              </button>
+
+              {isLoggingIn && (
+                <p className="auth-loading-message" role="status">
+                  Connecting to SentinelAI. Please wait...
+                </p>
+              )}
 
               <p className="login-security-note auth-switch">
                 Don't have an account?{" "}
@@ -611,10 +775,17 @@ function App() {
           <button
             className="analyze-button"
             onClick={handleUpload}
+            disabled={isUploading}
           >
-            Upload & Analyze
+            {isUploading ? "Uploading & Analyzing..." : "Upload & Analyze"}
           </button>
         </div>
+        {isUploading && (
+          <p className="upload-status" role="status" aria-live="polite">
+            Uploading your CSV and analyzing security events.
+            Please keep this page open while processing completes.
+          </p>
+        )}
       </div>
 
       <main className="main">
