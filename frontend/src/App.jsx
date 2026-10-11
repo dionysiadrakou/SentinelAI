@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import "./Login.css";
 
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
+
 function App() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -20,13 +24,14 @@ function App() {
   const inactivityTimer = useRef(null);
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
 
+
   //-------- Λειτουργία LOGIN ---------
   const handleLogin = async () => {
     try {
       // Στέλνουμε το username και το password
       // στο endpoint /login του FastAPI backend.
       const response = await fetch(
-        "http://127.0.0.1:8000/login",
+        `${API_BASE_URL}/login`,
         {
           method: "POST",
 
@@ -79,7 +84,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/register",
+        `${API_BASE_URL}/register`,
         {
           method: "POST",
 
@@ -172,7 +177,7 @@ function App() {
     //-------- Λειτουργία UPLOAD ---------
   const handleUpload = async () => {
 
-    // Έλεγχος αν έχει επιλεχθέι αρχείο CSV πριν το upload 
+    // Έλεγχος αν έχει επιλεχθέι αρχείο CSV πριν το upload
     if (!selectedFile) {
       alert("Please select a CSV file first.");
       return;
@@ -183,7 +188,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/upload",
+        `${API_BASE_URL}/upload`,
         {
           method: "POST",
 
@@ -196,7 +201,7 @@ function App() {
         }
       );
 
-      // Παίρνουμε την απάντηση του backend σε JSON μορφή 
+      // Παίρνουμε την απάντηση του backend σε JSON μορφή
       const result = await response.json();
 
       // Ελέγχουμε αν το upload ηταν επιτυχές
@@ -229,7 +234,7 @@ function App() {
             "Upload failed: Unable to connect to the SentinelAI server. Please make sure the backend is running."
           );
         } else {
-          // Γενικό error message 
+          // Γενικό error message
           alert("Upload failed: " + error.message);
         }
       }
@@ -269,7 +274,7 @@ function App() {
     // Αν δεν υπάρχει uploaded state,
     // φορτώνουμε τα default security logs από το backend.
     fetch(
-      "http://127.0.0.1:8000/analyze",
+      `${API_BASE_URL}/analyze`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -550,7 +555,7 @@ function App() {
     .join(" ");
 
   console.log("expandedIncident:", expandedIncident);
-  
+
   return (
     <div className="app">
 
@@ -897,7 +902,7 @@ function App() {
                     ? "severity-medium"
                     : "severity-low";
 
-                return (  
+                return (
                     <div
                       className={`incident ${severityClass}`}
                       key={index}
@@ -950,7 +955,7 @@ function App() {
                       </div>
 
                     </div>
-                  
+
 
                     {/* Εμφανίζουμε τις απειλές του incident. */}
                     <div className="threats">
@@ -973,10 +978,10 @@ function App() {
                       </div>
 
                     </div>
-                  </div>              
+                  </div>
                 );
               })
-              
+
             )}
           </div>
         </section>

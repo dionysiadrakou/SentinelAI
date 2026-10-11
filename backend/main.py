@@ -445,6 +445,7 @@ async def upload_file(file: UploadFile = File(...), token: str = Depends(oauth2_
             # Έλεγχος event.
             allowed_events = {
                 "login",
+                "logout",
                 "privilege_change",
                 "password_change"
             }
