@@ -52,8 +52,9 @@ def check_login_rate_limit(client_ip):
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=[
+        "localhost",
         "127.0.0.1",
-        "localhost"
+        "sentinelai-api-usc3.onrender.com"
     ]
 )
 
