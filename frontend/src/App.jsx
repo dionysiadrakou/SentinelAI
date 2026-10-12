@@ -28,7 +28,8 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState(null);
 
   //-------- Λειτουργία LOGIN ---------
   const handleLogin = async () => {
@@ -137,18 +138,25 @@ function App() {
   };
 
   //-------- Λειτουργία LOGOUT ---------
-  const handleLogout = () => {
-    // Διαγράφουμε το JWT token.
-    sessionStorage.removeItem("sentinelai_token");
 
-    // Διαγράφουμε και το προσωρινό uploaded dashboard state.
+  const handleLogout = () => {
+    // Σταματάμε το timer αδράνειας.
+    clearTimeout(inactivityTimer.current);
+
+    // Διαγράφουμε τα αποθηκευμένα στοιχεία της συνεδρίας.
+    sessionStorage.removeItem("sentinelai_token");
     sessionStorage.removeItem("sentinelai_uploaded_data");
 
-    // Αφαιρούμε το token από το React state.
-    setToken(null);
+    // Κλείνουμε το παράθυρο επιβεβαίωσης.
+    setShowLogoutConfirm(false);
 
-    // Καθαρίζουμε τα δεδομένα του dashboard.
+    // Καθαρίζουμε την κατάσταση της εφαρμογής.
+    setToken(null);
     setData(null);
+    setError(null);
+    setSelectedFile(null);
+    setExpandedIncident(null);
+    setUploadMessage(null);
   };
 
   //-------- AUTO LOGOUT AFTER INACTIVITY ---------
@@ -197,28 +205,31 @@ function App() {
       return;
     }
 
-    // Έλεγχος αν έχει επιλεχθεί αρχείο CSV πριν το upload.
     if (!selectedFile) {
-      alert("Please select a CSV file first.");
+      setUploadMessage({
+        type: "error",
+        text: "Please select a CSV file first."
+      });
       return;
     }
 
     setIsUploading(true);
+    setUploadMessage({
+      type: "loading",
+      text: "Uploading your CSV and analyzing security events..."
+    });
 
     const formData = new FormData();
     formData.append("file", selectedFile);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/upload`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: formData
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
 
       const result = await response.json();
 
@@ -243,20 +254,27 @@ function App() {
         JSON.stringify(uploadedData)
       );
 
-      alert(result.message);
+      setUploadMessage({
+        type: "success",
+        text: result.message || "CSV uploaded and analyzed successfully."
+      });
 
     } catch (error) {
-      if (error.message === "Failed to fetch") {
-        alert(
-          "Upload failed: Unable to connect to the SentinelAI server. Please try again."
-        );
-      } else {
-        alert("Upload failed: " + error.message);
-      }
+      const message =
+        error.message === "Failed to fetch"
+          ? "Unable to connect to the SentinelAI server. Please try again."
+          : error.message;
+
+      setUploadMessage({
+        type: "error",
+        text: `Upload failed: ${message}`
+      });
+
     } finally {
       setIsUploading(false);
     }
   };
+
 
 
   // Φορτώνουμε τα δεδομένα του dashboard από το backend.
@@ -732,7 +750,7 @@ function App() {
         </div>
         <button
           className="logout-button"
-          onClick={handleLogout}
+          onClick={() => setShowLogoutConfirm(true)}
         >
           Logout
         </button>
@@ -754,7 +772,10 @@ function App() {
             <input
               type="file"
               accept=".csv"
-              onChange={(event) => setSelectedFile(event.target.files[0])}
+              onChange={(event) => {
+                setSelectedFile(event.target.files[0] || null);
+                setUploadMessage(null);
+              }}
             />
 
             <div className="upload-icon">
@@ -780,12 +801,16 @@ function App() {
             {isUploading ? "Uploading & Analyzing..." : "Upload & Analyze"}
           </button>
         </div>
-        {isUploading && (
-          <p className="upload-status" role="status" aria-live="polite">
-            Uploading your CSV and analyzing security events.
-            Please keep this page open while processing completes.
-          </p>
-        )}
+
+         {uploadMessage && (
+            <p
+              className={`upload-message ${uploadMessage.type}`}
+              role="status"
+              aria-live="polite"
+            >
+              {uploadMessage.text}
+            </p>
+          )}
       </div>
 
       <main className="main">
@@ -1340,6 +1365,57 @@ function App() {
           </div>
         );
       })()}
+
+      {showLogoutConfirm && (
+        <div
+          className="logout-confirm-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setShowLogoutConfirm(false);
+            }
+          }}
+        >
+          <div
+            className="logout-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-confirm-title"
+            aria-describedby="logout-confirm-description"
+          >
+            <div className="logout-confirm-heading">
+              <div className="logout-confirm-text">
+                <h2 id="logout-confirm-title">
+                  Log out of SentinelAI?
+                </h2>
+
+                <p id="logout-confirm-description">
+                  Are you sure you want to log out?
+                  Your current dashboard view will be cleared
+                  from this browser session.
+                </p>
+              </div>
+            </div>
+
+            <div className="logout-confirm-actions">
+              <button
+                type="button"
+                className="logout-cancel-button"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="logout-confirm-button"
+                onClick={handleLogout}
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

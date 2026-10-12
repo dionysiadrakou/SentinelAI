@@ -1,11 +1,6 @@
-/* =========================
-   SENTINELAI LOGIN
-   ========================= */
+/* SENTINELAI LOGIN */
 
-
-/* =========================
-   LOGIN PAGE BACKGROUND
-   ========================= */
+/* LOGIN PAGE BACKGROUND */
 
 body:has(.login-section) {
   background:
@@ -26,7 +21,6 @@ body:has(.login-section) {
     ),
     #0f172a;
 }
-
 
 /* Subtle technical grid */
 
@@ -64,26 +58,19 @@ body:has(.login-section)::before {
   );
 }
 
-
-/* =========================
-   LOGIN PANEL
-   ========================= */
+/* LOGIN PANEL */
 
 .login-section {
   width: min(460px, calc(100% - 40px));
   min-height: 500px;
-
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-
   padding: 70px 46px 52px;
-
   background: rgba(30, 41, 59, 0.86);
   border: 1px solid rgba(71, 85, 105, 0.75);
   border-radius: 18px;
@@ -94,67 +81,44 @@ body:has(.login-section)::before {
 
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-
   overflow: hidden;
 }
 
-
-/* =========================
-   PANEL DECORATION
-   ========================= */
+/* PANEL DECORATION */
 
 .login-section::after {
   content: "";
-
   position: absolute;
-
   width: 220px;
   height: 220px;
-
   top: -120px;
   right: -100px;
-
   background: rgba(37, 99, 235, 0.14);
-
   border-radius: 50%;
-
   filter: blur(10px);
-
   pointer-events: none;
 }
-
 
 /* Second decorative glow */
 
 .login-section .login-decoration {
   position: absolute;
-
   width: 180px;
   height: 180px;
-
   bottom: -110px;
   left: -90px;
-
   background: rgba(59, 130, 246, 0.08);
-
   border-radius: 50%;
-
   filter: blur(8px);
-
   pointer-events: none;
 }
 
-
-/* =========================
-   TITLE
-   ========================= */
+/* TITLE */
 
 .login-section h2 {
   position: relative;
   z-index: 1;
-
   margin: 0;
-
   color: #f8fafc;
   font-size: 30px;
   font-weight: 650;
@@ -164,49 +128,36 @@ body:has(.login-section)::before {
 
 .login-section h2::after {
   content: "Security monitoring and incident analysis";
-
   display: block;
-
   margin-top: 10px;
-
   color: #94a3b8;
   font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
 }
 
-
-/* =========================
-   INPUTS
-   ========================= */
+/* INPUTS */
 
 .login-section input {
   position: relative;
   z-index: 1;
-
   width: 100%;
   height: 50px;
-
   margin-top: 14px;
   padding: 0 15px;
-
   background: rgba(15, 23, 42, 0.88);
   border: 1px solid #334155;
   border-radius: 9px;
-
   color: #f1f5f9;
   font-family: inherit;
   font-size: 14px;
-
   outline: none;
-
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     background-color 0.2s ease,
     transform 0.2s ease;
 }
-
 
 /* Space between subtitle and username */
 
@@ -225,38 +176,27 @@ body:has(.login-section)::before {
 .login-section input:focus {
   background: #111c31;
   border-color: #3b82f6;
-
   box-shadow:
     0 0 0 3px rgba(59, 130, 246, 0.12);
-
   transform: translateY(-1px);
 }
 
-
-/* =========================
-   LOGIN BUTTON
-   ========================= */
+/* LOGIN BUTTON */
 
 .login-section button {
   position: relative;
   z-index: 1;
-
   width: 100%;
   height: 50px;
-
   margin-top: 22px;
-
   background: #2563eb;
   border: 1px solid #2563eb;
   border-radius: 9px;
-
   color: #ffffff;
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
-
   cursor: pointer;
-
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -267,10 +207,8 @@ body:has(.login-section)::before {
 .login-section button:hover {
   background: #1d4ed8;
   border-color: #1d4ed8;
-
   box-shadow:
     0 8px 22px rgba(37, 99, 235, 0.24);
-
   transform: translateY(-2px);
 }
 
@@ -281,36 +219,27 @@ body:has(.login-section)::before {
 .auth-link {
   width: auto !important;
   height: auto !important;
-
   margin: 0 !important;
   padding: 0 !important;
-
   background: none !important;
   border: none !important;
   border-radius: 0 !important;
-
   color: #3b82f6 !important;
   font-family: inherit;
   font-size: inherit;
   font-weight: 500;
-
   cursor: pointer;
-
   box-shadow: none !important;
   transform: none !important;
-
   text-decoration: none;
 }
 
 .auth-link:hover {
   background: none !important;
   border: none !important;
-
   color: #60a5fa !important;
-
   box-shadow: none !important;
   transform: none !important;
-
   text-decoration: underline;
 }
 
@@ -328,7 +257,6 @@ body:has(.login-section)::before {
 
 .auth-form {
   width: 100%;
-
   animation: auth-switch 0.5s ease-out;
 }
 
@@ -347,16 +275,12 @@ body:has(.login-section)::before {
 }
 
 
-/* =========================
-   SECURITY NOTE
-   ========================= */
+/* SECURITY NOTE */
 
 .login-security-note {
   position: relative;
   z-index: 1;
-
   margin: 18px 0 0;
-
   color: #64748b;
   font-size: 11px;
   font-weight: 400;
@@ -364,18 +288,13 @@ body:has(.login-section)::before {
   text-align: center;
 }
 
-
-/* =========================
-   MOBILE
-   ========================= */
+/* MOBILE */
 
 @media (max-width: 600px) {
   .login-section {
     width: calc(100% - 32px);
     min-height: auto;
-
     padding: 42px 28px;
-
     border-radius: 15px;
   }
 
@@ -387,7 +306,6 @@ body:has(.login-section)::before {
     margin-top: 28px;
   }
 }
-
 
 .password-input-wrapper {
   position: relative;
@@ -403,29 +321,22 @@ body:has(.login-section)::before {
 .login-section .password-input-wrapper .password-toggle {
   position: absolute;
   z-index: 2;
-
   top: 26px;
   right: 12px;
-
   width: 22px;
   height: 22px;
   min-width: 22px;
-
   margin: 0;
   padding: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   background: transparent;
   border: none;
   border-radius: 0;
   box-shadow: none;
-
   color: #94a3b8;
   cursor: pointer;
-
   transform: none;
   transition: none;
 }
@@ -436,7 +347,6 @@ body:has(.login-section)::before {
   background: transparent;
   border: none;
   box-shadow: none;
-
   color: #94a3b8;
   transform: none;
 }
@@ -444,7 +354,6 @@ body:has(.login-section)::before {
 .login-section .password-input-wrapper .password-toggle svg {
   width: 17px;
   height: 17px;
-
   display: block;
   flex-shrink: 0;
 }
